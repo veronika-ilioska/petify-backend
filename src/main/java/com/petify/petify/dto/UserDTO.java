@@ -13,6 +13,7 @@ public class UserDTO {
     private String userType;
     private boolean isBlocked;
     private String blockedReason;
+    private boolean verified;
 
     // Constructors
     public UserDTO() {
@@ -29,6 +30,7 @@ public class UserDTO {
         this.userType = "CLIENT"; // Default type
         this.isBlocked = false;
         this.blockedReason = "";
+        this.verified = false;
     }
 
     public UserDTO(Long userId, String username, String email, String firstName,
@@ -42,6 +44,7 @@ public class UserDTO {
         this.userType = userType;
         this.isBlocked = false;
         this.blockedReason = "";
+        this.verified = false;
     }
 
     public UserDTO(Long userId, String username, String email, String firstName,
@@ -55,6 +58,21 @@ public class UserDTO {
         this.userType = userType;
         this.isBlocked = isBlocked;
         this.blockedReason = blockedReason;
+        this.verified = false;
+    }
+
+    public UserDTO(Long userId, String username, String email, String firstName,
+                   String lastName, LocalDateTime createdAt, String userType, boolean isBlocked, String blockedReason, boolean verified) {
+        this.userId = userId;
+        this.username = username;
+        this.email = email;
+        this.firstName = firstName;
+        this.lastName = lastName;
+        this.createdAt = createdAt;
+        this.userType = userType;
+        this.isBlocked = isBlocked;
+        this.blockedReason = blockedReason;
+        this.verified = verified;
     }
 
     // Getters and Setters
@@ -129,5 +147,13 @@ public class UserDTO {
 
     public void setBlockedReason(String blockedReason) {
         this.blockedReason = blockedReason;
+    }
+
+    public boolean isVerified() {
+        return verified;
+    }
+
+    public void setVerified(boolean verified) {
+        this.verified = verified;
     }
 }

@@ -8,7 +8,9 @@ import com.petify.petify.dto.AuthResponse;
 import com.petify.petify.dto.LoginRequest;
 import com.petify.petify.dto.SignUpRequest;
 import com.petify.petify.dto.UserDTO;
+import com.petify.petify.dto.UserActivityRankingProjection;
 import com.petify.petify.repo.AdminRepository;
+import com.petify.petify.repo.AnalyticsRepository;
 import com.petify.petify.repo.ClientRepository;
 import com.petify.petify.repo.OwnerRepository;
 import com.petify.petify.repo.UserRepository;
@@ -33,15 +35,17 @@ public class AuthService {
     private final OwnerRepository ownerRepository;
     private final AdminRepository adminRepository;
     private final PasswordEncoder passwordEncoder;
+    private final AnalyticsRepository analyticsRepository;
 
     public AuthService(UserRepository userRepository, ClientRepository clientRepository,
                       OwnerRepository ownerRepository, AdminRepository adminRepository,
-                      PasswordEncoder passwordEncoder) {
+                      PasswordEncoder passwordEncoder, AnalyticsRepository analyticsRepository) {
         this.userRepository = userRepository;
         this.clientRepository = clientRepository;
         this.ownerRepository = ownerRepository;
         this.adminRepository = adminRepository;
         this.passwordEncoder = passwordEncoder;
+        this.analyticsRepository = analyticsRepository;
     }
 
     /**
@@ -88,7 +92,8 @@ public class AuthService {
             savedUser.getEmail(),
             savedUser.getFirstName(),
             savedUser.getLastName(),
-            UserType.CLIENT
+            UserType.CLIENT,
+            false  // New users are not verified by default
         );
     }
 
@@ -142,13 +147,18 @@ public class AuthService {
             logger.info(" User is CLIENT");
         }
 
+        // Check if user is verified (in top 10 most active users)
+        boolean isVerified = isUserInTopActive(foundUser.getUserId());
+        logger.info("User {} verification status: {}", foundUser.getUsername(), isVerified);
+
         return new AuthResponse(
             foundUser.getUserId(),
             foundUser.getUsername(),
             foundUser.getEmail(),
             foundUser.getFirstName(),
             foundUser.getLastName(),
-            userType
+            userType,
+            isVerified
         );
     }
 
@@ -235,7 +245,11 @@ public class AuthService {
                     }
                 }
             }
+        // ...existing code...
         }
+
+        // Check if user is verified (in top 10 most active users)
+        boolean isVerified = isUserInTopActive(user.getUserId());
 
         UserDTO dto = new UserDTO(
             user.getUserId(),
@@ -246,10 +260,27 @@ public class AuthService {
             user.getCreatedAt(),
             userType,
             isBlocked,
-            blockedReason
+            blockedReason,
+            isVerified
         );
 
-        logger.debug("✓ Created UserDTO for {} with type: {}, blocked: {}", user.getUsername(), userType, isBlocked);
+        logger.debug("✓ Created UserDTO for {} with type: {}, blocked: {}, verified: {}", user.getUsername(), userType, isBlocked, isVerified);
         return dto;
+    }
+
+    /**
+     * Check if a user is in the top active users
+     */
+    private boolean isUserInTopActive(Long userId) {
+        try {
+            LocalDateTime now = LocalDateTime.now();
+            LocalDateTime thirtyDaysAgo = now.minusDays(30);
+
+            List<UserActivityRankingProjection> topUsers = analyticsRepository.getTopActiveUsers(thirtyDaysAgo, now);
+            return topUsers.stream().anyMatch(u -> u.getUserId().equals(userId));
+        } catch (Exception e) {
+            logger.error("Error checking if user is in top active: {}", e.getMessage());
+            return false;
+        }
     }
 }

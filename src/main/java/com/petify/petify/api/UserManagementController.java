@@ -3,10 +3,11 @@ package com.petify.petify.api;
 import com.petify.petify.domain.Client;
 import com.petify.petify.dto.ListingDTO;
 import com.petify.petify.dto.UserDTO;
+import com.petify.petify.dto.UserActivityRankingProjection;
+import com.petify.petify.repo.AnalyticsRepository;
 import com.petify.petify.repo.ClientRepository;
 import com.petify.petify.service.AuthService;
 import com.petify.petify.service.ListingService;
-import com.petify.petify.service.VerificationService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -24,13 +25,13 @@ public class UserManagementController {
     private static final Logger logger = LoggerFactory.getLogger(UserManagementController.class);
 
     private final AuthService authService;
-    private final VerificationService verificationService;
+    private final AnalyticsRepository analyticsRepository;
     private final ListingService listingService;
     private final ClientRepository clientRepository;
 
-    public UserManagementController(AuthService authService, VerificationService verificationService, ListingService listingService, ClientRepository clientRepository) {
+    public UserManagementController(AuthService authService, AnalyticsRepository analyticsRepository, ListingService listingService, ClientRepository clientRepository) {
         this.authService = authService;
-        this.verificationService = verificationService;
+        this.analyticsRepository = analyticsRepository;
         this.listingService = listingService;
         this.clientRepository = clientRepository;
     }
@@ -172,8 +173,11 @@ public class UserManagementController {
     @GetMapping("/verification/top-10")
     public ResponseEntity<?> getTop10VerifiedUsers() {
         try {
-            var topUsers = verificationService.getTop10ActiveUserIds();
-            return ResponseEntity.ok(Map.of("topUsers", topUsers, "count", topUsers.size()));
+            LocalDateTime now = LocalDateTime.now();
+            LocalDateTime thirtyDaysAgo = now.minusDays(30);
+            List<UserActivityRankingProjection> topUsers = analyticsRepository.getTopActiveUsers(thirtyDaysAgo, now);
+            List<Long> topUserIds = topUsers.stream().map(UserActivityRankingProjection::getUserId).toList();
+            return ResponseEntity.ok(Map.of("topUsers", topUserIds, "count", topUserIds.size()));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("error", "Failed to fetch top 10 users: " + e.getMessage()));
@@ -187,7 +191,10 @@ public class UserManagementController {
     @GetMapping("/{userId}/verified")
     public ResponseEntity<?> isUserVerified(@PathVariable Long userId) {
         try {
-            boolean isVerified = verificationService.isUserVerified(userId);
+            LocalDateTime now = LocalDateTime.now();
+            LocalDateTime thirtyDaysAgo = now.minusDays(30);
+            List<UserActivityRankingProjection> topUsers = analyticsRepository.getTopActiveUsers(thirtyDaysAgo, now);
+            boolean isVerified = topUsers.stream().anyMatch(u -> u.getUserId().equals(userId));
             return ResponseEntity.ok(Map.of("userId", userId, "verified", isVerified));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
