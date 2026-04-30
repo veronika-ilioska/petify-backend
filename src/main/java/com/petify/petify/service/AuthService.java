@@ -100,11 +100,12 @@ public class AuthService {
     /**
      * Login user with username and password
      */
-    @Transactional(readOnly = true)
+    @Transactional
     public AuthResponse login(LoginRequest request) {
-        Optional<User> user = userRepository.findByUsername(request.getUsername());
+        Optional<User> user = userRepository.findByUsernameOrEmail(request.getUsername(), request.getUsername());
 
         if (user.isEmpty()) {
+            logger.warn("Login failed: no user found for identifier: {}", request.getUsername());
             throw new RuntimeException("Invalid username or password");
         }
 
@@ -118,9 +119,17 @@ public class AuthService {
             foundUser.getFirstName(),
             foundUser.getLastName());
 
-        // Verify password
-        if (!passwordEncoder.matches(request.getPassword(), foundUser.getPassword())) {
-            throw new RuntimeException("Invalid username or password");
+        // Verify password (supports legacy plain-text passwords and upgrades them)
+        boolean passwordMatches = passwordEncoder.matches(request.getPassword(), foundUser.getPassword());
+        if (!passwordMatches) {
+            if (request.getPassword() != null && request.getPassword().equals(foundUser.getPassword())) {
+                foundUser.setPassword(passwordEncoder.encode(request.getPassword()));
+                userRepository.save(foundUser);
+                logger.info("Upgraded legacy password hash for user: {}", foundUser.getUsername());
+            } else {
+                logger.warn("Login failed: password mismatch for user: {}", foundUser.getUsername());
+                throw new RuntimeException("Invalid username or password");
+            }
         }
 
         logger.info("Password verified successfully for user: {}", foundUser.getUsername());
@@ -245,7 +254,6 @@ public class AuthService {
                     }
                 }
             }
-        // ...existing code...
         }
 
         // Check if user is verified (in top 10 most active users)

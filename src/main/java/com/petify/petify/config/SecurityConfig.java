@@ -6,7 +6,6 @@ import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.password.NoOpPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.cors.CorsConfiguration;
@@ -16,24 +15,21 @@ import org.springframework.http.HttpMethod;
 
 
 import java.util.Arrays;
+import java.util.List;
 
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
 
-    //@Bean
-    //public PasswordEncoder passwordEncoder() {
-     //   return new BCryptPasswordEncoder();
-   // }
     @Bean
     public PasswordEncoder passwordEncoder() {
-        return NoOpPasswordEncoder.getInstance();
+        return new BCryptPasswordEncoder();
     }
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList("http://localhost:5174"));
+        configuration.setAllowedOriginPatterns(List.of("http://localhost:5175"));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT","PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("*"));
         configuration.setAllowCredentials(true);
@@ -79,6 +75,9 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/users/admin/*").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/reviews/*").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/analytics/*").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/appointments").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/appointments/my").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/clinics").permitAll()
 
                         // Favorites endpoints - protected
                         .requestMatchers(HttpMethod.POST, "/api/favorites/**").permitAll()
