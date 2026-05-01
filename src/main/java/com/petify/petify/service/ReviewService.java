@@ -234,6 +234,17 @@ public class ReviewService {
         return reviewDTOs;
     }
 
+    @Transactional(readOnly = true)
+    public List<ReviewDTO> getReviewsLeftByUser(Long reviewerId) {
+        userRepository.findById(reviewerId)
+            .orElseThrow(() -> new RuntimeException("User not found"));
+
+        return reviewRepository.findByReviewerUserIdAndIsDeletedFalseOrderByCreatedAtDesc(reviewerId)
+            .stream()
+            .map(ReviewDTO::new)
+            .collect(Collectors.toList());
+    }
+
     /**
      * Delete a review (soft delete - marks as deleted but keeps the record)
      * @param reviewId the review ID

@@ -73,6 +73,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/users/*").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/owner/*").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/reviews/*").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/reviews/by/*").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/reviews/clinics/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/pets/*").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/users/admin/*").permitAll()
@@ -106,6 +107,9 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET,"/api/listings/recommendations").permitAll()
                         .requestMatchers(HttpMethod.GET,"/api/users/admin/all").permitAll()
                         .requestMatchers(HttpMethod.GET,"/api/users/admin/listings").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/admin/clinic-applications").permitAll()
+                        .requestMatchers(HttpMethod.PATCH, "/api/admin/clinic-applications/*/approve").permitAll()
+                        .requestMatchers(HttpMethod.PATCH, "/api/admin/clinic-applications/*/deny").permitAll()
 
                         // All other requests require authentication
                         .anyRequest().authenticated()

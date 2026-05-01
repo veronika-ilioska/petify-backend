@@ -91,6 +91,21 @@ public class ReviewController {
         }
     }
 
+    @GetMapping("/by/{reviewerId}")
+    public ResponseEntity<?> getReviewsLeftByUser(@PathVariable Long reviewerId) {
+        try {
+            List<ReviewDTO> reviews = reviewService.getReviewsLeftByUser(reviewerId);
+            return ResponseEntity.ok(reviews);
+        } catch (RuntimeException e) {
+            logger.error("Error fetching reviews left by user: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            logger.error("Unexpected error fetching reviews left by user: {}", e.getMessage(), e);
+            return ResponseEntity.status(500)
+                    .body(Map.of("error", "Failed to fetch reviews left by user: " + e.getMessage()));
+        }
+    }
+
     @GetMapping("/clinics/{clinicId}/mine")
     public ResponseEntity<?> getMyClinicReview(
             @PathVariable Long clinicId,
