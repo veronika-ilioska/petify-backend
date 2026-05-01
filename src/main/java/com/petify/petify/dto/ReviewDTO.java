@@ -11,6 +11,7 @@ public class ReviewDTO {
     private Integer rating;
     private String comment;
     private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
 
     // Constructors
     public ReviewDTO() {
@@ -24,6 +25,7 @@ public class ReviewDTO {
         this.rating = review.getRating();
         this.comment = review.getComment();
         this.createdAt = review.getCreatedAt();
+        this.updatedAt = review.getUpdatedAt();
     }
 
     // Getters and Setters
@@ -81,5 +83,13 @@ public class ReviewDTO {
 
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
     }
 }

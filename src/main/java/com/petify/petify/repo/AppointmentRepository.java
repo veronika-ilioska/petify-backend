@@ -29,4 +29,10 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
         LocalDateTime dateTime,
         Collection<String> excludedStatuses
     );
+
+    boolean existsByResponsibleOwnerUserIdAndClinicIdAndStatus(
+        Long userId,
+        Long clinicId,
+        String status
+    );
 }

@@ -1,26 +1,6 @@
-create or replace function petify_trg_reviews_no_update()
-returns trigger
-language plpgsql
-as $$
-begin
-    raise exception 'Reviews cannot be updated';
-end;
-$$;
-
 DROP TRIGGER IF EXISTS trg_reviews_no_update ON reviews;
-
-create trigger trg_reviews_no_update
-before update on reviews
-for each row
-execute function petify_trg_reviews_no_update();
-
-
 DROP TRIGGER IF EXISTS trg_clinic_reviews_no_update ON clinic_reviews;
-CREATE TRIGGER trg_clinic_reviews_no_update
-    BEFORE UPDATE
-    ON clinic_reviews
-    FOR EACH ROW
-EXECUTE FUNCTION petify_trg_reviews_no_update();
+DROP FUNCTION IF EXISTS petify_trg_reviews_no_update() cascade;
 
 
 -- A review_id can belong to either user_reviews or clinic_reviews, but not both

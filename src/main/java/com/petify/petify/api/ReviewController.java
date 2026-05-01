@@ -58,6 +58,77 @@ public class ReviewController {
         }
     }
 
+    @PostMapping("/clinics/{clinicId}")
+    public ResponseEntity<?> createClinicReview(
+            @PathVariable Long clinicId,
+            @RequestHeader("X-User-Id") Long userId,
+            @RequestBody CreateReviewRequest request) {
+        try {
+            ReviewDTO review = reviewService.createClinicReview(userId, clinicId, request);
+            return ResponseEntity.status(HttpStatus.CREATED).body(review);
+        } catch (RuntimeException e) {
+            logger.error("Error creating clinic review: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            logger.error("Unexpected error creating clinic review: {}", e.getMessage(), e);
+            return ResponseEntity.status(500)
+                    .body(Map.of("error", "Failed to create clinic review: " + e.getMessage()));
+        }
+    }
+
+    @GetMapping("/clinics/{clinicId}")
+    public ResponseEntity<?> getReviewsByClinic(@PathVariable Long clinicId) {
+        try {
+            List<ReviewDTO> reviews = reviewService.getReviewsByClinic(clinicId);
+            return ResponseEntity.ok(reviews);
+        } catch (RuntimeException e) {
+            logger.error("Error fetching clinic reviews: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            logger.error("Unexpected error fetching clinic reviews: {}", e.getMessage(), e);
+            return ResponseEntity.status(500)
+                    .body(Map.of("error", "Failed to fetch clinic reviews: " + e.getMessage()));
+        }
+    }
+
+    @GetMapping("/clinics/{clinicId}/mine")
+    public ResponseEntity<?> getMyClinicReview(
+            @PathVariable Long clinicId,
+            @RequestHeader("X-User-Id") Long userId) {
+        try {
+            ReviewDTO review = reviewService.getMyClinicReview(userId, clinicId);
+            if (review == null) {
+                return ResponseEntity.noContent().build();
+            }
+            return ResponseEntity.ok(review);
+        } catch (RuntimeException e) {
+            logger.error("Error fetching my clinic review: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            logger.error("Unexpected error fetching my clinic review: {}", e.getMessage(), e);
+            return ResponseEntity.status(500)
+                    .body(Map.of("error", "Failed to fetch clinic review: " + e.getMessage()));
+        }
+    }
+
+    @PutMapping("/{reviewId}")
+    public ResponseEntity<?> updateReview(
+            @PathVariable Long reviewId,
+            @RequestHeader("X-User-Id") Long userId,
+            @RequestBody CreateReviewRequest request) {
+        try {
+            ReviewDTO review = reviewService.updateReview(reviewId, userId, request);
+            return ResponseEntity.ok(review);
+        } catch (RuntimeException e) {
+            logger.error("Error updating review: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            logger.error("Unexpected error updating review: {}", e.getMessage(), e);
+            return ResponseEntity.status(500)
+                    .body(Map.of("error", "Failed to update review: " + e.getMessage()));
+        }
+    }
+
     /**
      * Get all reviews for a user
      * GET /api/reviews/{targetUserId}

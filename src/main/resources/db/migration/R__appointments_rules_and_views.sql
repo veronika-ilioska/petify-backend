@@ -20,6 +20,17 @@ BEGIN
             NEW.responsible_owner_id, v_animal_owner, NEW.animal_id;
     END IF;
 
+    IF EXISTS (
+        SELECT 1
+        FROM clinic_unavailable_slots cus
+        WHERE cus.clinic_id = NEW.clinic_id
+          AND cus.date_time = NEW.date_time
+    ) THEN
+        RAISE EXCEPTION
+            'Clinic % is unavailable at %',
+            NEW.clinic_id, NEW.date_time;
+    END IF;
+
     IF NEW.status = 'CONFIRMED' AND NEW.date_time < now() THEN
         RAISE EXCEPTION
             'Cannot CONFIRM an appointment in the past (date_time=%)',

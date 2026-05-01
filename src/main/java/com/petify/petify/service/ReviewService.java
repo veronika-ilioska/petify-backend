@@ -1,13 +1,17 @@
 package com.petify.petify.service;
 
+import com.petify.petify.domain.ClinicReview;
 import com.petify.petify.domain.Review;
 import com.petify.petify.domain.User;
 import com.petify.petify.domain.UserReview;
 import com.petify.petify.dto.CreateReviewRequest;
 import com.petify.petify.dto.ReviewDTO;
+import com.petify.petify.repo.AppointmentRepository;
+import com.petify.petify.repo.ClinicReviewRepository;
 import com.petify.petify.repo.ReviewRepository;
 import com.petify.petify.repo.UserReviewRepository;
 import com.petify.petify.repo.UserRepository;
+import com.petify.petify.repo.VetClinicRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -24,12 +28,23 @@ public class ReviewService {
 
     private final ReviewRepository reviewRepository;
     private final UserReviewRepository userReviewRepository;
+    private final ClinicReviewRepository clinicReviewRepository;
     private final UserRepository userRepository;
+    private final VetClinicRepository vetClinicRepository;
+    private final AppointmentRepository appointmentRepository;
 
-    public ReviewService(ReviewRepository reviewRepository, UserReviewRepository userReviewRepository, UserRepository userRepository) {
+    public ReviewService(ReviewRepository reviewRepository,
+                         UserReviewRepository userReviewRepository,
+                         ClinicReviewRepository clinicReviewRepository,
+                         UserRepository userRepository,
+                         VetClinicRepository vetClinicRepository,
+                         AppointmentRepository appointmentRepository) {
         this.reviewRepository = reviewRepository;
         this.userReviewRepository = userReviewRepository;
+        this.clinicReviewRepository = clinicReviewRepository;
         this.userRepository = userRepository;
+        this.vetClinicRepository = vetClinicRepository;
+        this.appointmentRepository = appointmentRepository;
     }
 
     /**
@@ -114,6 +129,75 @@ public class ReviewService {
         return reviewDTO;
     }
 
+    @Transactional
+    public ReviewDTO createClinicReview(Long reviewerId, Long clinicId, CreateReviewRequest request) {
+        validateReviewRequest(request);
+        User reviewer = getReviewer(reviewerId);
+
+        if (!vetClinicRepository.existsById(clinicId)) {
+            throw new RuntimeException("Clinic not found");
+        }
+
+        if (!appointmentRepository.existsByResponsibleOwnerUserIdAndClinicIdAndStatus(reviewerId, clinicId, "DONE")) {
+            throw new RuntimeException("You can review this clinic only after a completed appointment");
+        }
+
+        var existingReview = clinicReviewRepository
+            .findTopByReviewReviewerUserIdAndTargetClinicIdAndReviewIsDeletedFalseOrderByReviewCreatedAtDesc(reviewerId, clinicId);
+        if (existingReview.isPresent()) {
+            throw new RuntimeException("You have already reviewed this clinic");
+        }
+
+        Review review = reviewRepository.saveAndFlush(new Review(reviewer, request.getRating(), request.getComment()));
+        clinicReviewRepository.saveAndFlush(new ClinicReview(review, clinicId));
+        return new ReviewDTO(review);
+    }
+
+    @Transactional(readOnly = true)
+    public List<ReviewDTO> getReviewsByClinic(Long clinicId) {
+        if (!vetClinicRepository.existsById(clinicId)) {
+            throw new RuntimeException("Clinic not found");
+        }
+
+        return clinicReviewRepository.findReviewsForClinic(clinicId)
+            .stream()
+            .map(ReviewDTO::new)
+            .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public ReviewDTO getMyClinicReview(Long reviewerId, Long clinicId) {
+        if (!vetClinicRepository.existsById(clinicId)) {
+            throw new RuntimeException("Clinic not found");
+        }
+
+        return clinicReviewRepository
+            .findTopByReviewReviewerUserIdAndTargetClinicIdAndReviewIsDeletedFalseOrderByReviewCreatedAtDesc(reviewerId, clinicId)
+            .map(ClinicReview::getReview)
+            .map(ReviewDTO::new)
+            .orElse(null);
+    }
+
+    @Transactional
+    public ReviewDTO updateReview(Long reviewId, Long userId, CreateReviewRequest request) {
+        validateReviewRequest(request);
+        Review review = reviewRepository.findById(reviewId)
+            .orElseThrow(() -> new RuntimeException("Review not found"));
+
+        if (Boolean.TRUE.equals(review.getIsDeleted())) {
+            throw new RuntimeException("Review has been deleted");
+        }
+
+        if (!review.getReviewer().getUserId().equals(userId)) {
+            throw new RuntimeException("You can only edit your own reviews");
+        }
+
+        review.setRating(request.getRating());
+        review.setComment(request.getComment());
+        review.setUpdatedAt(LocalDateTime.now());
+        return new ReviewDTO(reviewRepository.save(review));
+    }
+
 
     /**
      * Get all reviews for a user
@@ -181,5 +265,16 @@ public class ReviewService {
         reviewRepository.save(review);
 
         logger.info("=== END deleteReview - SUCCESS ===");
+    }
+
+    private void validateReviewRequest(CreateReviewRequest request) {
+        if (request.getRating() == null || request.getRating() < 1 || request.getRating() > 5) {
+            throw new RuntimeException("Rating must be between 1 and 5");
+        }
+    }
+
+    private User getReviewer(Long reviewerId) {
+        return userRepository.findById(reviewerId)
+            .orElseThrow(() -> new RuntimeException("Reviewer not found"));
     }
 }
