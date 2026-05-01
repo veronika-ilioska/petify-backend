@@ -2,8 +2,11 @@ package com.petify.petify.service;
 
 import com.petify.petify.domain.Appointment;
 import com.petify.petify.domain.ClinicUnavailableSlot;
+import com.petify.petify.domain.Notification;
 import com.petify.petify.domain.Owner;
 import com.petify.petify.domain.Pet;
+import com.petify.petify.domain.User;
+import com.petify.petify.domain.VetClinic;
 import com.petify.petify.dto.AppointmentDTO;
 import com.petify.petify.dto.AppointmentSlotDTO;
 import com.petify.petify.dto.ClinicAppointmentDTO;
@@ -13,8 +16,10 @@ import com.petify.petify.dto.CreateAppointmentRequest;
 import com.petify.petify.dto.OwnerAppointmentDTO;
 import com.petify.petify.repo.AppointmentRepository;
 import com.petify.petify.repo.ClinicUnavailableSlotRepository;
+import com.petify.petify.repo.NotificationRepository;
 import com.petify.petify.repo.OwnerRepository;
 import com.petify.petify.repo.PetRepository;
+import com.petify.petify.repo.UserRepository;
 import com.petify.petify.repo.VetClinicRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,19 +45,25 @@ public class AppointmentService {
 
     private final AppointmentRepository appointmentRepository;
     private final ClinicUnavailableSlotRepository unavailableSlotRepository;
+    private final NotificationRepository notificationRepository;
     private final OwnerRepository ownerRepository;
     private final PetRepository petRepository;
+    private final UserRepository userRepository;
     private final VetClinicRepository vetClinicRepository;
 
     public AppointmentService(AppointmentRepository appointmentRepository,
                               ClinicUnavailableSlotRepository unavailableSlotRepository,
+                              NotificationRepository notificationRepository,
                               OwnerRepository ownerRepository,
                               PetRepository petRepository,
+                              UserRepository userRepository,
                               VetClinicRepository vetClinicRepository) {
         this.appointmentRepository = appointmentRepository;
         this.unavailableSlotRepository = unavailableSlotRepository;
+        this.notificationRepository = notificationRepository;
         this.ownerRepository = ownerRepository;
         this.petRepository = petRepository;
+        this.userRepository = userRepository;
         this.vetClinicRepository = vetClinicRepository;
     }
 
@@ -107,6 +118,40 @@ public class AppointmentService {
             .stream()
             .map(this::mapToOwnerDTO)
             .toList();
+    }
+
+    @Transactional
+    public OwnerAppointmentDTO cancelAppointmentForOwner(Long userId, Long appointmentId) {
+        if (userId == null || appointmentId == null) {
+            throw new RuntimeException("User and appointment are required");
+        }
+
+        Appointment appointment = appointmentRepository.findById(appointmentId)
+            .orElseThrow(() -> new RuntimeException("Appointment not found"));
+
+        if (appointment.getResponsibleOwner() == null
+            || appointment.getResponsibleOwner().getUserId() == null
+            || !appointment.getResponsibleOwner().getUserId().equals(userId)) {
+            throw new RuntimeException("You can only cancel your own appointments");
+        }
+
+        if (!appointment.getDateTime().isAfter(LocalDateTime.now())) {
+            throw new RuntimeException("Only future appointments can be cancelled");
+        }
+
+        if ("CANCELLED".equals(appointment.getStatus())) {
+            throw new RuntimeException("Appointment is already cancelled");
+        }
+
+        if ("DONE".equals(appointment.getStatus()) || "NO_SHOW".equals(appointment.getStatus())) {
+            throw new RuntimeException("This appointment can no longer be cancelled");
+        }
+
+        appointment.setStatus("CANCELLED");
+        Appointment saved = appointmentRepository.save(appointment);
+        notifyClinicAboutCancellation(saved);
+
+        return mapToOwnerDTO(saved);
     }
 
     @Transactional(readOnly = true)
@@ -313,6 +358,32 @@ public class AppointmentService {
             appointment.getDateTime(),
             appointment.getNotes()
         );
+    }
+
+    private void notifyClinicAboutCancellation(Appointment appointment) {
+        VetClinic clinic = vetClinicRepository.findById(appointment.getClinicId()).orElse(null);
+        if (clinic == null || clinic.getUserId() == null) {
+            logger.warn("Skipping cancellation notification: clinic {} has no linked user", appointment.getClinicId());
+            return;
+        }
+
+        User clinicUser = userRepository.findById(clinic.getUserId()).orElse(null);
+        if (clinicUser == null) {
+            logger.warn("Skipping cancellation notification: clinic user {} not found", clinic.getUserId());
+            return;
+        }
+
+        Pet pet = appointment.getPet();
+        Owner owner = appointment.getResponsibleOwner();
+        User ownerUser = owner != null ? owner.getUser() : null;
+        String ownerName = ownerUser != null
+            ? ownerUser.getFirstName() + " " + ownerUser.getLastName()
+            : "An owner";
+        String petName = pet != null ? pet.getName() : "a pet";
+        String message = "%s cancelled the appointment for %s on %s."
+            .formatted(ownerName, petName, appointment.getDateTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")));
+
+        notificationRepository.save(new Notification(clinicUser, "APPOINTMENT_CANCELLED", message));
     }
 
     private ClinicAppointmentDTO mapToClinicDTO(Appointment appointment) {

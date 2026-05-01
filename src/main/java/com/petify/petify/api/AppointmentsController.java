@@ -48,6 +48,18 @@ public class AppointmentsController {
         }
     }
 
+    @PatchMapping("/my/{appointmentId}/cancel")
+    public ResponseEntity<?> cancelMyAppointment(
+        @RequestHeader("X-User-Id") Long userId,
+        @PathVariable Long appointmentId) {
+        try {
+            var appointment = appointmentService.cancelAppointmentForOwner(userId, appointmentId);
+            return ResponseEntity.ok(appointment);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
     @GetMapping("/clinics/{clinicId}/available-slots")
     public ResponseEntity<?> getAvailableSlots(
         @PathVariable Long clinicId,

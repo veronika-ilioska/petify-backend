@@ -82,6 +82,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/analytics/*").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/appointments").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/appointments/my").permitAll()
+                        .requestMatchers(HttpMethod.PATCH, "/api/appointments/my/*/cancel").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/appointments/my-clinic").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/appointments/my-clinic/available-slots").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/appointments/my-clinic/unavailable-slots").permitAll()
@@ -90,6 +91,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/appointments/clinics/*/available-slots").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/clinics").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/clinics/my").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/notifications/my").permitAll()
 
                         // Favorites endpoints - protected
                         .requestMatchers(HttpMethod.POST, "/api/favorites/**").permitAll()
