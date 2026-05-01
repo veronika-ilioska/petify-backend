@@ -77,8 +77,14 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/analytics/*").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/appointments").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/appointments/my").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/appointments/my-clinic").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/appointments/my-clinic/available-slots").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/appointments/my-clinic/unavailable-slots").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/appointments/my-clinic/unavailable-slots").permitAll()
+                        .requestMatchers(HttpMethod.DELETE, "/api/appointments/my-clinic/unavailable-slots/*").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/appointments/clinics/*/available-slots").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/clinics").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/clinics/my").permitAll()
 
                         // Favorites endpoints - protected
                         .requestMatchers(HttpMethod.POST, "/api/favorites/**").permitAll()

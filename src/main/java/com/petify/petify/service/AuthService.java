@@ -14,6 +14,7 @@ import com.petify.petify.repo.AnalyticsRepository;
 import com.petify.petify.repo.ClientRepository;
 import com.petify.petify.repo.OwnerRepository;
 import com.petify.petify.repo.UserRepository;
+import com.petify.petify.repo.VetClinicRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -36,16 +37,19 @@ public class AuthService {
     private final AdminRepository adminRepository;
     private final PasswordEncoder passwordEncoder;
     private final AnalyticsRepository analyticsRepository;
+    private final VetClinicRepository vetClinicRepository;
 
     public AuthService(UserRepository userRepository, ClientRepository clientRepository,
                       OwnerRepository ownerRepository, AdminRepository adminRepository,
-                      PasswordEncoder passwordEncoder, AnalyticsRepository analyticsRepository) {
+                      PasswordEncoder passwordEncoder, AnalyticsRepository analyticsRepository,
+                      VetClinicRepository vetClinicRepository) {
         this.userRepository = userRepository;
         this.clientRepository = clientRepository;
         this.ownerRepository = ownerRepository;
         this.adminRepository = adminRepository;
         this.passwordEncoder = passwordEncoder;
         this.analyticsRepository = analyticsRepository;
+        this.vetClinicRepository = vetClinicRepository;
     }
 
     /**
@@ -149,6 +153,9 @@ public class AuthService {
         if (adminRepository.existsById(foundUser.getUserId())) {
             userType = UserType.ADMIN;
             logger.info(" User is ADMIN");
+        } else if (vetClinicRepository.existsByUserId(foundUser.getUserId())) {
+            userType = UserType.CLINIC;
+            logger.info(" User is CLINIC");
         } else if (ownerRepository.existsById(foundUser.getUserId())) {
             userType = UserType.OWNER;
             logger.info(" User is OWNER");
@@ -225,6 +232,9 @@ public class AuthService {
         if (adminRepository.existsById(user.getUserId())) {
             userType = "ADMIN";
             logger.debug("✓ User {} is ADMIN", user.getUserId());
+        } else if (vetClinicRepository.existsByUserId(user.getUserId())) {
+            userType = "CLINIC";
+            logger.debug("✓ User {} is CLINIC", user.getUserId());
         } else if (ownerRepository.existsById(user.getUserId())) {
             userType = "OWNER";
             logger.debug("✓ User {} is OWNER", user.getUserId());

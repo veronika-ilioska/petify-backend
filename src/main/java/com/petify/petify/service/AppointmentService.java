@@ -1,13 +1,18 @@
 package com.petify.petify.service;
 
 import com.petify.petify.domain.Appointment;
+import com.petify.petify.domain.ClinicUnavailableSlot;
 import com.petify.petify.domain.Owner;
 import com.petify.petify.domain.Pet;
 import com.petify.petify.dto.AppointmentDTO;
 import com.petify.petify.dto.AppointmentSlotDTO;
+import com.petify.petify.dto.ClinicAppointmentDTO;
+import com.petify.petify.dto.ClinicUnavailableSlotDTO;
+import com.petify.petify.dto.CreateUnavailableSlotRequest;
 import com.petify.petify.dto.CreateAppointmentRequest;
 import com.petify.petify.dto.OwnerAppointmentDTO;
 import com.petify.petify.repo.AppointmentRepository;
+import com.petify.petify.repo.ClinicUnavailableSlotRepository;
 import com.petify.petify.repo.OwnerRepository;
 import com.petify.petify.repo.PetRepository;
 import com.petify.petify.repo.VetClinicRepository;
@@ -34,15 +39,18 @@ public class AppointmentService {
     private static final DateTimeFormatter SLOT_LABEL_FORMATTER = DateTimeFormatter.ofPattern("HH:mm");
 
     private final AppointmentRepository appointmentRepository;
+    private final ClinicUnavailableSlotRepository unavailableSlotRepository;
     private final OwnerRepository ownerRepository;
     private final PetRepository petRepository;
     private final VetClinicRepository vetClinicRepository;
 
     public AppointmentService(AppointmentRepository appointmentRepository,
+                              ClinicUnavailableSlotRepository unavailableSlotRepository,
                               OwnerRepository ownerRepository,
                               PetRepository petRepository,
                               VetClinicRepository vetClinicRepository) {
         this.appointmentRepository = appointmentRepository;
+        this.unavailableSlotRepository = unavailableSlotRepository;
         this.ownerRepository = ownerRepository;
         this.petRepository = petRepository;
         this.vetClinicRepository = vetClinicRepository;
@@ -102,6 +110,30 @@ public class AppointmentService {
     }
 
     @Transactional(readOnly = true)
+    public List<ClinicAppointmentDTO> getAppointmentsForClinic(Long clinicId, LocalDate date) {
+        if (clinicId == null || date == null) {
+            throw new RuntimeException("Clinic and date are required");
+        }
+
+        if (!vetClinicRepository.existsById(clinicId)) {
+            throw new RuntimeException("Vet clinic not found");
+        }
+
+        LocalDateTime dayStart = date.atStartOfDay();
+        LocalDateTime dayEnd = date.plusDays(1).atStartOfDay();
+
+        return appointmentRepository.findByClinicIdAndDateTimeBetweenOrderByDateTimeAsc(clinicId, dayStart, dayEnd.minusNanos(1))
+            .stream()
+            .map(this::mapToClinicDTO)
+            .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<ClinicAppointmentDTO> getAppointmentsForClinicUser(Long userId, LocalDate date) {
+        return getAppointmentsForClinic(resolveClinicIdForUser(userId), date);
+    }
+
+    @Transactional(readOnly = true)
     public List<AppointmentSlotDTO> getAvailableSlots(Long clinicId, LocalDate date) {
         if (clinicId == null || date == null) {
             throw new RuntimeException("Clinic and date are required");
@@ -123,24 +155,114 @@ public class AppointmentService {
             .stream()
             .map(Appointment::getDateTime)
             .collect(java.util.stream.Collectors.toSet());
+        Set<LocalDateTime> unavailableSlots = unavailableSlotRepository
+            .findByClinicIdAndDateTimeBetweenOrderByDateTimeAsc(
+                clinicId,
+                dayStart,
+                dayEnd.minusNanos(1)
+            )
+            .stream()
+            .map(ClinicUnavailableSlot::getDateTime)
+            .collect(java.util.stream.Collectors.toSet());
 
         LocalDateTime now = LocalDateTime.now();
         return java.util.stream.Stream
             .iterate(dayStart, slot -> slot.isBefore(dayEnd), slot -> slot.plusMinutes(SLOT_MINUTES))
             .filter(slot -> !slot.isBefore(now))
             .filter(slot -> !bookedSlots.contains(slot))
+            .filter(slot -> !unavailableSlots.contains(slot))
             .map(slot -> new AppointmentSlotDTO(slot, slot.format(SLOT_LABEL_FORMATTER)))
             .toList();
     }
 
+    @Transactional(readOnly = true)
+    public List<AppointmentSlotDTO> getAvailableSlotsForClinicUser(Long userId, LocalDate date) {
+        return getAvailableSlots(resolveClinicIdForUser(userId), date);
+    }
+
+    @Transactional(readOnly = true)
+    public List<ClinicUnavailableSlotDTO> getUnavailableSlots(Long clinicId, LocalDate date) {
+        if (clinicId == null || date == null) {
+            throw new RuntimeException("Clinic and date are required");
+        }
+
+        if (!vetClinicRepository.existsById(clinicId)) {
+            throw new RuntimeException("Vet clinic not found");
+        }
+
+        LocalDateTime dayStart = date.atTime(CLINIC_DAY_START);
+        LocalDateTime dayEnd = date.atTime(CLINIC_DAY_END);
+
+        return unavailableSlotRepository
+            .findByClinicIdAndDateTimeBetweenOrderByDateTimeAsc(clinicId, dayStart, dayEnd.minusNanos(1))
+            .stream()
+            .map(this::mapToUnavailableSlotDTO)
+            .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<ClinicUnavailableSlotDTO> getUnavailableSlotsForClinicUser(Long userId, LocalDate date) {
+        return getUnavailableSlots(resolveClinicIdForUser(userId), date);
+    }
+
+    @Transactional
+    public ClinicUnavailableSlotDTO createUnavailableSlot(Long clinicId, CreateUnavailableSlotRequest request) {
+        if (clinicId == null || request.getDateTime() == null) {
+            throw new RuntimeException("Clinic and date/time are required");
+        }
+
+        if (!vetClinicRepository.existsById(clinicId)) {
+            throw new RuntimeException("Vet clinic not found");
+        }
+
+        LocalDateTime slotTime = LocalDateTime.parse(request.getDateTime());
+        if (!isValidWorkingSlot(slotTime)) {
+            throw new RuntimeException("Unavailable slot must be a future 30-minute slot between 09:00 and 17:00");
+        }
+
+        if (appointmentRepository.existsByClinicIdAndDateTimeAndStatusNotIn(clinicId, slotTime, NON_BLOCKING_STATUSES)) {
+            throw new RuntimeException("Cannot block a slot that already has an appointment");
+        }
+
+        if (unavailableSlotRepository.existsByClinicIdAndDateTime(clinicId, slotTime)) {
+            throw new RuntimeException("This slot is already marked unavailable");
+        }
+
+        ClinicUnavailableSlot saved = unavailableSlotRepository.save(
+            new ClinicUnavailableSlot(clinicId, slotTime, request.getReason())
+        );
+        return mapToUnavailableSlotDTO(saved);
+    }
+
+    @Transactional
+    public ClinicUnavailableSlotDTO createUnavailableSlotForClinicUser(Long userId, CreateUnavailableSlotRequest request) {
+        return createUnavailableSlot(resolveClinicIdForUser(userId), request);
+    }
+
+    @Transactional
+    public void deleteUnavailableSlot(Long clinicId, Long slotId) {
+        ClinicUnavailableSlot slot = unavailableSlotRepository.findBySlotIdAndClinicId(slotId, clinicId)
+            .orElseThrow(() -> new RuntimeException("Unavailable slot not found"));
+        unavailableSlotRepository.delete(slot);
+    }
+
+    @Transactional
+    public void deleteUnavailableSlotForClinicUser(Long userId, Long slotId) {
+        deleteUnavailableSlot(resolveClinicIdForUser(userId), slotId);
+    }
+
+    private Long resolveClinicIdForUser(Long userId) {
+        if (userId == null) {
+            throw new RuntimeException("User is required");
+        }
+
+        return vetClinicRepository.findByUserId(userId)
+            .orElseThrow(() -> new RuntimeException("User is not linked to a clinic"))
+            .getClinicId();
+    }
+
     private boolean isClinicSlotAvailable(Long clinicId, LocalDateTime appointmentTime) {
-        LocalTime time = appointmentTime.toLocalTime();
-        if (appointmentTime.isBefore(LocalDateTime.now())
-            || time.isBefore(CLINIC_DAY_START)
-            || !time.isBefore(CLINIC_DAY_END)
-            || appointmentTime.getMinute() % SLOT_MINUTES != 0
-            || appointmentTime.getSecond() != 0
-            || appointmentTime.getNano() != 0) {
+        if (!isValidWorkingSlot(appointmentTime)) {
             return false;
         }
 
@@ -148,7 +270,17 @@ public class AppointmentService {
             clinicId,
             appointmentTime,
             NON_BLOCKING_STATUSES
-        );
+        ) && !unavailableSlotRepository.existsByClinicIdAndDateTime(clinicId, appointmentTime);
+    }
+
+    private boolean isValidWorkingSlot(LocalDateTime appointmentTime) {
+        LocalTime time = appointmentTime.toLocalTime();
+        return !appointmentTime.isBefore(LocalDateTime.now())
+            && !time.isBefore(CLINIC_DAY_START)
+            && time.isBefore(CLINIC_DAY_END)
+            && appointmentTime.getMinute() % SLOT_MINUTES == 0
+            && appointmentTime.getSecond() == 0
+            && appointmentTime.getNano() == 0;
     }
 
     private AppointmentDTO mapToDTO(Appointment appointment) {
@@ -180,6 +312,37 @@ public class AppointmentService {
             appointment.getStatus(),
             appointment.getDateTime(),
             appointment.getNotes()
+        );
+    }
+
+    private ClinicAppointmentDTO mapToClinicDTO(Appointment appointment) {
+        Pet pet = appointment.getPet();
+        Owner owner = appointment.getResponsibleOwner();
+        var user = owner != null ? owner.getUser() : null;
+        String ownerName = user != null ? user.getFirstName() + " " + user.getLastName() : null;
+
+        return new ClinicAppointmentDTO(
+            appointment.getAppointmentId(),
+            appointment.getClinicId(),
+            pet != null ? pet.getAnimalId() : null,
+            pet != null ? pet.getName() : null,
+            pet != null ? pet.getSpecies() : null,
+            owner != null ? owner.getUserId() : null,
+            ownerName,
+            appointment.getStatus(),
+            appointment.getDateTime(),
+            appointment.getDateTime().format(SLOT_LABEL_FORMATTER),
+            appointment.getNotes()
+        );
+    }
+
+    private ClinicUnavailableSlotDTO mapToUnavailableSlotDTO(ClinicUnavailableSlot slot) {
+        return new ClinicUnavailableSlotDTO(
+            slot.getSlotId(),
+            slot.getClinicId(),
+            slot.getDateTime(),
+            slot.getDateTime().format(SLOT_LABEL_FORMATTER),
+            slot.getReason()
         );
     }
 }

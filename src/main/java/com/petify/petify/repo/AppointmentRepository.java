@@ -11,6 +11,12 @@ import java.util.Collection;
 public interface AppointmentRepository extends JpaRepository<Appointment, Long> {
     java.util.List<Appointment> findByResponsibleOwnerUserIdOrderByDateTimeAsc(Long userId);
 
+    java.util.List<Appointment> findByClinicIdAndDateTimeBetweenOrderByDateTimeAsc(
+        Long clinicId,
+        LocalDateTime start,
+        LocalDateTime end
+    );
+
     java.util.List<Appointment> findByClinicIdAndDateTimeBetweenAndStatusNotInOrderByDateTimeAsc(
         Long clinicId,
         LocalDateTime start,

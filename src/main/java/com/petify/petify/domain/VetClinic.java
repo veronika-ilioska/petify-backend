@@ -18,6 +18,9 @@ public class VetClinic {
     @Column(name = "application_id", nullable = false)
     private Long applicationId;
 
+    @Column(name = "user_id")
+    private Long userId;
+
     @Column(nullable = false)
     private String name;
 
