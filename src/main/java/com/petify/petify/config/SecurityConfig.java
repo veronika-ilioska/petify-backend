@@ -84,6 +84,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/appointments/my").permitAll()
                         .requestMatchers(HttpMethod.PATCH, "/api/appointments/my/*/cancel").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/appointments/my-clinic").permitAll()
+                        .requestMatchers(HttpMethod.PATCH, "/api/appointments/my-clinic/*/no-show").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/appointments/my-clinic/available-slots").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/appointments/my-clinic/unavailable-slots").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/appointments/my-clinic/unavailable-slots").permitAll()

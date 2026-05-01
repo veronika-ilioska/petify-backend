@@ -84,6 +84,18 @@ public class AppointmentsController {
         }
     }
 
+    @PatchMapping("/my-clinic/{appointmentId}/no-show")
+    public ResponseEntity<?> markMyClinicAppointmentNoShow(
+        @RequestHeader("X-User-Id") Long userId,
+        @PathVariable Long appointmentId) {
+        try {
+            ClinicAppointmentDTO appointment = appointmentService.markAppointmentNoShowForClinicUser(userId, appointmentId);
+            return ResponseEntity.ok(appointment);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
     @GetMapping("/my-clinic/available-slots")
     public ResponseEntity<?> getMyClinicAvailableSlots(
         @RequestHeader("X-User-Id") Long userId,

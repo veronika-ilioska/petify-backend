@@ -109,10 +109,12 @@ public class AppointmentService {
         return mapToDTO(saved);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public java.util.List<OwnerAppointmentDTO> getAppointmentsForOwner(Long userId) {
         Owner owner = ownerRepository.findByUserId(userId)
             .orElseThrow(() -> new RuntimeException("User is not an owner. Only owners can view appointments."));
+
+        markPastConfirmedAppointmentsDoneForOwner(owner.getUserId());
 
         return appointmentRepository.findByResponsibleOwnerUserIdOrderByDateTimeAsc(owner.getUserId())
             .stream()
@@ -154,7 +156,7 @@ public class AppointmentService {
         return mapToOwnerDTO(saved);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public List<ClinicAppointmentDTO> getAppointmentsForClinic(Long clinicId, LocalDate date) {
         if (clinicId == null || date == null) {
             throw new RuntimeException("Clinic and date are required");
@@ -166,6 +168,7 @@ public class AppointmentService {
 
         LocalDateTime dayStart = date.atStartOfDay();
         LocalDateTime dayEnd = date.plusDays(1).atStartOfDay();
+        markPastConfirmedAppointmentsDoneForClinic(clinicId);
 
         return appointmentRepository.findByClinicIdAndDateTimeBetweenOrderByDateTimeAsc(clinicId, dayStart, dayEnd.minusNanos(1))
             .stream()
@@ -173,9 +176,31 @@ public class AppointmentService {
             .toList();
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public List<ClinicAppointmentDTO> getAppointmentsForClinicUser(Long userId, LocalDate date) {
         return getAppointmentsForClinic(resolveClinicIdForUser(userId), date);
+    }
+
+    @Transactional
+    public ClinicAppointmentDTO markAppointmentNoShowForClinicUser(Long userId, Long appointmentId) {
+        Long clinicId = resolveClinicIdForUser(userId);
+        Appointment appointment = appointmentRepository.findById(appointmentId)
+            .orElseThrow(() -> new RuntimeException("Appointment not found"));
+
+        if (!clinicId.equals(appointment.getClinicId())) {
+            throw new RuntimeException("You can only update appointments for your own clinic");
+        }
+
+        if (!"CONFIRMED".equals(appointment.getStatus()) && !"DONE".equals(appointment.getStatus())) {
+            throw new RuntimeException("Only confirmed or done appointments can be marked as no-show");
+        }
+
+        if (appointment.getDateTime().isAfter(LocalDateTime.now())) {
+            throw new RuntimeException("An appointment can be marked as no-show only after its scheduled time");
+        }
+
+        appointment.setStatus("NO_SHOW");
+        return mapToClinicDTO(appointmentRepository.save(appointment));
     }
 
     @Transactional(readOnly = true)
@@ -326,6 +351,38 @@ public class AppointmentService {
             && appointmentTime.getMinute() % SLOT_MINUTES == 0
             && appointmentTime.getSecond() == 0
             && appointmentTime.getNano() == 0;
+    }
+
+    private void markPastConfirmedAppointmentsDoneForOwner(Long ownerId) {
+        LocalDateTime now = LocalDateTime.now();
+        List<Appointment> updatedAppointments = appointmentRepository.findByResponsibleOwnerUserIdOrderByDateTimeAsc(ownerId)
+            .stream()
+            .filter(appointment -> "CONFIRMED".equals(appointment.getStatus()))
+            .filter(appointment -> !appointment.getDateTime().isAfter(now))
+            .peek(appointment -> appointment.setStatus("DONE"))
+            .toList();
+
+        if (!updatedAppointments.isEmpty()) {
+            appointmentRepository.saveAll(updatedAppointments);
+        }
+    }
+
+    private void markPastConfirmedAppointmentsDoneForClinic(Long clinicId) {
+        LocalDate today = LocalDate.now();
+        LocalDateTime start = LocalDate.of(1970, 1, 1).atStartOfDay();
+        LocalDateTime end = today.plusDays(1).atStartOfDay();
+        LocalDateTime now = LocalDateTime.now();
+        List<Appointment> updatedAppointments = appointmentRepository
+            .findByClinicIdAndDateTimeBetweenOrderByDateTimeAsc(clinicId, start, end)
+            .stream()
+            .filter(appointment -> "CONFIRMED".equals(appointment.getStatus()))
+            .filter(appointment -> !appointment.getDateTime().isAfter(now))
+            .peek(appointment -> appointment.setStatus("DONE"))
+            .toList();
+
+        if (!updatedAppointments.isEmpty()) {
+            appointmentRepository.saveAll(updatedAppointments);
+        }
     }
 
     private AppointmentDTO mapToDTO(Appointment appointment) {
