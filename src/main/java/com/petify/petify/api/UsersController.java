@@ -14,9 +14,12 @@ import com.petify.petify.service.PetService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 
@@ -67,7 +70,7 @@ public class UsersController {
      * Add a new pet for a user (promotes CLIENT to OWNER if needed)
      * POST /api/users/{userId}/pets
      */
-    @PostMapping("/{userId}/pets")
+    @PostMapping(value = "/{userId}/pets", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> createPet(
             @PathVariable Long userId,
             @RequestHeader("X-User-Id") Long headerUserId,
@@ -94,6 +97,55 @@ public class UsersController {
             return ResponseEntity.status(500)
                     .body(Map.of("error", "Failed to create pet: " + e.getMessage()));
         }
+    }
+
+    @PostMapping(value = "/{userId}/pets", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> createPetWithPhoto(
+            @PathVariable Long userId,
+            @RequestHeader("X-User-Id") Long headerUserId,
+            @RequestParam String name,
+            @RequestParam String sex,
+            @RequestParam String type,
+            @RequestParam String species,
+            @RequestParam(required = false) String dateOfBirth,
+            @RequestParam(required = false) String breed,
+            @RequestParam(required = false) String locatedName,
+            @RequestPart(required = false) MultipartFile photo) {
+        logger.info("========== CREATE PET WITH PHOTO ENDPOINT HIT ==========");
+
+        try {
+            if (!userId.equals(headerUserId)) {
+                logger.error(" AUTHORIZATION FAILED: userId ({}) != headerUserId ({})", userId, headerUserId);
+                return ResponseEntity.status(403)
+                    .body(Map.of("error", "You can only create pets for yourself"));
+            }
+
+            CreatePetRequest request = new CreatePetRequest();
+            request.setName(name);
+            request.setSex(sex);
+            request.setType(type);
+            request.setSpecies(species);
+            request.setBreed(blankToNull(breed));
+            request.setLocatedName(blankToNull(locatedName));
+            if (dateOfBirth != null && !dateOfBirth.isBlank()) {
+                request.setDateOfBirth(LocalDate.parse(dateOfBirth));
+            }
+
+            AnimalResponseDTO pet = petService.addPet(userId, request, photo);
+            return ResponseEntity.status(HttpStatus.CREATED).body(pet);
+        } catch (RuntimeException e) {
+            logger.error(" RuntimeException in createPetWithPhoto: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest()
+                .body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            logger.error(" Unexpected Exception in createPetWithPhoto: {}", e.getMessage(), e);
+            return ResponseEntity.status(500)
+                .body(Map.of("error", "Failed to create pet: " + e.getMessage()));
+        }
+    }
+
+    private String blankToNull(String value) {
+        return value == null || value.isBlank() ? null : value;
     }
 
 //    /**

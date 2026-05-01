@@ -12,12 +12,28 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.util.Locale;
+import java.util.Set;
+import java.util.UUID;
 
 @Service
 public class PetService {
 
     private static final Logger logger = LoggerFactory.getLogger(PetService.class);
+    private static final long MAX_PHOTO_BYTES = 5L * 1024 * 1024;
+    private static final Path PET_UPLOAD_DIR = Path.of("uploads", "pets");
+    private static final Set<String> ALLOWED_IMAGE_TYPES = Set.of(
+        "image/jpeg",
+        "image/png",
+        "image/webp",
+        "image/gif"
+    );
 
     private final PetRepository petRepository;
     private final UserRepository userRepository;
@@ -36,7 +52,12 @@ public class PetService {
      * @return the created pet as DTO
      */
     @Transactional
-    public AnimalResponseDTO addPet(Long userId,@RequestBody CreatePetRequest request) {
+    public AnimalResponseDTO addPet(Long userId, CreatePetRequest request) {
+        return addPet(userId, request, null);
+    }
+
+    @Transactional
+    public AnimalResponseDTO addPet(Long userId, CreatePetRequest request, MultipartFile photo) {
 
         // Validate required fields
         if (request.getName() == null || request.getName().isBlank()) {
@@ -64,6 +85,9 @@ public class PetService {
                 });
 
         logger.info("Adding pet for user ID: {}", userId);
+        if (photo != null && !photo.isEmpty()) {
+            request.setPhotoUrl(savePetPhoto(photo));
+        }
 
         // Check if user is already an owner, if not, promote them
         Owner owner = ownerRepository.findByUserId(userId)
@@ -97,6 +121,39 @@ public class PetService {
 
 
         return result;
+    }
+
+    private String savePetPhoto(MultipartFile photo) {
+        String contentType = photo.getContentType() != null ? photo.getContentType().toLowerCase(Locale.ROOT) : "";
+        if (!ALLOWED_IMAGE_TYPES.contains(contentType)) {
+            throw new RuntimeException("Pet photo must be a JPG, PNG, WEBP, or GIF image");
+        }
+
+        if (photo.getSize() > MAX_PHOTO_BYTES) {
+            throw new RuntimeException("Pet photo must be 5MB or smaller");
+        }
+
+        String extension = switch (contentType) {
+            case "image/jpeg" -> ".jpg";
+            case "image/png" -> ".png";
+            case "image/webp" -> ".webp";
+            case "image/gif" -> ".gif";
+            default -> "";
+        };
+
+        try {
+            Files.createDirectories(PET_UPLOAD_DIR);
+            String filename = UUID.randomUUID() + extension;
+            Path target = PET_UPLOAD_DIR.resolve(filename).toAbsolutePath().normalize();
+            Path uploadRoot = PET_UPLOAD_DIR.toAbsolutePath().normalize();
+            if (!target.startsWith(uploadRoot)) {
+                throw new RuntimeException("Invalid upload target");
+            }
+            Files.copy(photo.getInputStream(), target, StandardCopyOption.REPLACE_EXISTING);
+            return "/uploads/pets/" + filename;
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to save pet photo", e);
+        }
     }
 
     /**
