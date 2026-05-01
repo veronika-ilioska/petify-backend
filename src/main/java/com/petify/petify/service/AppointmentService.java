@@ -4,6 +4,7 @@ import com.petify.petify.domain.Appointment;
 import com.petify.petify.domain.Owner;
 import com.petify.petify.domain.Pet;
 import com.petify.petify.dto.AppointmentDTO;
+import com.petify.petify.dto.AppointmentSlotDTO;
 import com.petify.petify.dto.CreateAppointmentRequest;
 import com.petify.petify.dto.OwnerAppointmentDTO;
 import com.petify.petify.repo.AppointmentRepository;
@@ -15,12 +16,22 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
+import java.util.List;
+import java.util.Set;
 
 @Service
 public class AppointmentService {
 
     private static final Logger logger = LoggerFactory.getLogger(AppointmentService.class);
+    private static final LocalTime CLINIC_DAY_START = LocalTime.of(9, 0);
+    private static final LocalTime CLINIC_DAY_END = LocalTime.of(17, 0);
+    private static final int SLOT_MINUTES = 30;
+    private static final List<String> NON_BLOCKING_STATUSES = List.of("CANCELLED", "NO_SHOW");
+    private static final DateTimeFormatter SLOT_LABEL_FORMATTER = DateTimeFormatter.ofPattern("HH:mm");
 
     private final AppointmentRepository appointmentRepository;
     private final OwnerRepository ownerRepository;
@@ -58,6 +69,9 @@ public class AppointmentService {
         }
 
         LocalDateTime appointmentTime = LocalDateTime.parse(request.getDateTime());
+        if (!isClinicSlotAvailable(request.getClinicId(), appointmentTime)) {
+            throw new RuntimeException("Selected appointment slot is no longer available");
+        }
 
         Appointment appointment = new Appointment(
             request.getClinicId(),
@@ -85,6 +99,56 @@ public class AppointmentService {
             .stream()
             .map(this::mapToOwnerDTO)
             .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<AppointmentSlotDTO> getAvailableSlots(Long clinicId, LocalDate date) {
+        if (clinicId == null || date == null) {
+            throw new RuntimeException("Clinic and date are required");
+        }
+
+        if (!vetClinicRepository.existsById(clinicId)) {
+            throw new RuntimeException("Vet clinic not found");
+        }
+
+        LocalDateTime dayStart = date.atTime(CLINIC_DAY_START);
+        LocalDateTime dayEnd = date.atTime(CLINIC_DAY_END);
+        Set<LocalDateTime> bookedSlots = appointmentRepository
+            .findByClinicIdAndDateTimeBetweenAndStatusNotInOrderByDateTimeAsc(
+                clinicId,
+                dayStart,
+                dayEnd.minusNanos(1),
+                NON_BLOCKING_STATUSES
+            )
+            .stream()
+            .map(Appointment::getDateTime)
+            .collect(java.util.stream.Collectors.toSet());
+
+        LocalDateTime now = LocalDateTime.now();
+        return java.util.stream.Stream
+            .iterate(dayStart, slot -> slot.isBefore(dayEnd), slot -> slot.plusMinutes(SLOT_MINUTES))
+            .filter(slot -> !slot.isBefore(now))
+            .filter(slot -> !bookedSlots.contains(slot))
+            .map(slot -> new AppointmentSlotDTO(slot, slot.format(SLOT_LABEL_FORMATTER)))
+            .toList();
+    }
+
+    private boolean isClinicSlotAvailable(Long clinicId, LocalDateTime appointmentTime) {
+        LocalTime time = appointmentTime.toLocalTime();
+        if (appointmentTime.isBefore(LocalDateTime.now())
+            || time.isBefore(CLINIC_DAY_START)
+            || !time.isBefore(CLINIC_DAY_END)
+            || appointmentTime.getMinute() % SLOT_MINUTES != 0
+            || appointmentTime.getSecond() != 0
+            || appointmentTime.getNano() != 0) {
+            return false;
+        }
+
+        return !appointmentRepository.existsByClinicIdAndDateTimeAndStatusNotIn(
+            clinicId,
+            appointmentTime,
+            NON_BLOCKING_STATUSES
+        );
     }
 
     private AppointmentDTO mapToDTO(Appointment appointment) {

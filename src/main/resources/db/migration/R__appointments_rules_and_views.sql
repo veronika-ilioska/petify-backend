@@ -37,7 +37,7 @@ END;
 $$;
 
 
--- Prevent overlapping 30-minute appointments for the same owner or animal
+-- Prevent overlapping 30-minute appointments for the same clinic, owner, or animal
 CREATE OR REPLACE FUNCTION petify_trg_appointments_no_overlap()
     RETURNS trigger
     LANGUAGE plpgsql
@@ -45,6 +45,20 @@ AS $$
 BEGIN
     IF NEW.status NOT IN ('CONFIRMED', 'DONE') THEN
         RETURN NEW;
+    END IF;
+
+    IF EXISTS (
+        SELECT 1
+        FROM appointments a
+        WHERE a.clinic_id = NEW.clinic_id
+          AND a.status IN ('CONFIRMED', 'DONE')
+          AND tsrange(a.date_time, a.date_time + interval '30 minutes', '[)')
+            && tsrange(NEW.date_time, NEW.date_time + interval '30 minutes', '[)')
+          AND (TG_OP <> 'UPDATE' OR a.appointment_id <> NEW.appointment_id)
+    ) THEN
+        RAISE EXCEPTION
+            'Overlapping appointment for clinic % at %',
+            NEW.clinic_id, NEW.date_time;
     END IF;
 
     IF EXISTS (
