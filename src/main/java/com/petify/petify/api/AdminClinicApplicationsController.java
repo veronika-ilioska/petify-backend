@@ -3,8 +3,10 @@ package com.petify.petify.api;
 import com.petify.petify.domain.VetClinic;
 import com.petify.petify.domain.VetClinicApplication;
 import com.petify.petify.dto.VetClinicApplicationDTO;
+import com.petify.petify.repo.AdminRepository;
 import com.petify.petify.repo.VetClinicApplicationRepository;
 import com.petify.petify.repo.VetClinicRepository;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,15 +20,25 @@ public class AdminClinicApplicationsController {
 
     private final VetClinicApplicationRepository applicationRepository;
     private final VetClinicRepository clinicRepository;
+    private final AdminRepository adminRepository;
 
     public AdminClinicApplicationsController(VetClinicApplicationRepository applicationRepository,
-                                             VetClinicRepository clinicRepository) {
+                                             VetClinicRepository clinicRepository,
+                                             AdminRepository adminRepository) {
         this.applicationRepository = applicationRepository;
         this.clinicRepository = clinicRepository;
+        this.adminRepository = adminRepository;
+    }
+
+    private boolean isAdmin(Long userId) {
+        return userId != null && adminRepository.existsById(userId);
     }
 
     @GetMapping
     public ResponseEntity<List<VetClinicApplicationDTO>> getApplications(@RequestHeader("X-User-Id") Long adminUserId) {
+        if (!isAdmin(adminUserId)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
         List<VetClinicApplicationDTO> applications = applicationRepository.findAllByOrderBySubmittedAtDesc()
             .stream()
             .map(VetClinicApplicationDTO::new)
@@ -39,6 +51,10 @@ public class AdminClinicApplicationsController {
         @RequestHeader("X-User-Id") Long adminUserId,
         @PathVariable Long applicationId) {
         try {
+            if (!isAdmin(adminUserId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("error", "Admin access required"));
+            }
             VetClinicApplication application = applicationRepository.findById(applicationId)
                 .orElseThrow(() -> new RuntimeException("Application not found"));
 
@@ -73,6 +89,10 @@ public class AdminClinicApplicationsController {
         @PathVariable Long applicationId,
         @RequestBody Map<String, String> request) {
         try {
+            if (!isAdmin(adminUserId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("error", "Admin access required"));
+            }
             VetClinicApplication application = applicationRepository.findById(applicationId)
                 .orElseThrow(() -> new RuntimeException("Application not found"));
 

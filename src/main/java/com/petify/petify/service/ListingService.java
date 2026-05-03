@@ -6,11 +6,14 @@ import com.petify.petify.dto.CreateListingRequest;
 import com.petify.petify.dto.ListingDTO;
 import com.petify.petify.repo.ListingRepository;
 import com.petify.petify.repo.OwnerRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -88,6 +91,43 @@ public class ListingService {
             .stream()
             .map(this::mapToDTO)
             .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public Page<ListingDTO> getAllListings(Pageable pageable) {
+        return listingRepository.findAll(pageable)
+            .map(this::mapToDTO);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<ListingDTO> getListingsByStatus(String status, Pageable pageable) {
+        return listingRepository.findByStatusIgnoreCase(status, pageable)
+            .map(this::mapToDTO);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<ListingDTO> getAdminListings(String status, BigDecimal minPrice, BigDecimal maxPrice, Pageable pageable) {
+        String normalizedStatus = status == null || status.isBlank() ? null : status.trim();
+        boolean hasMinPrice = minPrice != null;
+        boolean hasMaxPrice = maxPrice != null;
+
+        if (normalizedStatus == null && !hasMinPrice && !hasMaxPrice) {
+            return listingRepository.findAll(pageable)
+                .map(this::mapToDTO);
+        }
+
+        if (normalizedStatus != null && !hasMinPrice && !hasMaxPrice) {
+            return listingRepository.findByStatusIgnoreCase(normalizedStatus, pageable)
+                .map(this::mapToDTO);
+        }
+
+        return listingRepository.findAdminListings(normalizedStatus, minPrice, maxPrice, pageable)
+            .map(this::mapToDTO);
+    }
+
+    @Transactional(readOnly = true)
+    public long countListingsByStatus(String status) {
+        return listingRepository.countByStatus(status);
     }
 
     /**

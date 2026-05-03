@@ -1,19 +1,25 @@
 package com.petify.petify.api;
 
 import com.petify.petify.domain.Client;
+import com.petify.petify.dto.AdminListingsPageDTO;
 import com.petify.petify.dto.ListingDTO;
 import com.petify.petify.dto.UserDTO;
 import com.petify.petify.dto.UserActivityRankingProjection;
+import com.petify.petify.repo.AdminRepository;
 import com.petify.petify.repo.AnalyticsRepository;
 import com.petify.petify.repo.ClientRepository;
 import com.petify.petify.service.AuthService;
 import com.petify.petify.service.ListingService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -28,12 +34,22 @@ public class UserManagementController {
     private final AnalyticsRepository analyticsRepository;
     private final ListingService listingService;
     private final ClientRepository clientRepository;
+    private final AdminRepository adminRepository;
 
-    public UserManagementController(AuthService authService, AnalyticsRepository analyticsRepository, ListingService listingService, ClientRepository clientRepository) {
+    public UserManagementController(AuthService authService,
+                                    AnalyticsRepository analyticsRepository,
+                                    ListingService listingService,
+                                    ClientRepository clientRepository,
+                                    AdminRepository adminRepository) {
         this.authService = authService;
         this.analyticsRepository = analyticsRepository;
         this.listingService = listingService;
         this.clientRepository = clientRepository;
+        this.adminRepository = adminRepository;
+    }
+
+    private boolean isAdmin(Long userId) {
+        return userId != null && adminRepository.existsById(userId);
     }
 
     @GetMapping
@@ -91,6 +107,11 @@ public class UserManagementController {
             logger.info("========== GET ALL USERS (ADMIN) ==========");
             logger.info("Admin User ID: {}", userId);
 
+            if (!isAdmin(userId)) {
+                logger.warn("❌ Forbidden: user {} attempted to access admin users endpoint", userId);
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(null);
+            }
+
             List<UserDTO> users = authService.getAllUsers();
             logger.info("✓ Retrieved {} users from AuthService", users.size());
 
@@ -111,61 +132,63 @@ public class UserManagementController {
     }
 
     /**
-     * Get all listings (Admin only)
-     * GET /api/users/admin/listings
+     * Get paged listings (Admin only)
+     * GET /api/users/admin/listings?page=0&size=500&status=ACTIVE
      */
     @GetMapping("/admin/listings")
-    public ResponseEntity<List<Map<String, Object>>> getAllListingsAdmin(@RequestHeader("X-User-Id") Long userId) {
+    public ResponseEntity<?> getAllListingsAdmin(
+            @RequestHeader("X-User-Id") Long userId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "500") int size,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) BigDecimal minPrice,
+            @RequestParam(required = false) BigDecimal maxPrice) {
         try {
             logger.info("========== GET ALL LISTINGS (ADMIN) ==========");
             logger.info("Admin User ID: {}", userId);
 
-            List<ListingDTO> listings = listingService.getAllListings();
-            logger.info("✓ Retrieved {} listings from ListingService", listings.size());
+            if (!isAdmin(userId)) {
+                logger.warn("❌ Forbidden: user {} attempted to access admin listings endpoint", userId);
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("error", "Admin access required"));
+            }
+            int safePage = Math.max(page, 0);
+            int safeSize = Math.min(Math.max(size, 1), 500);
+            String normalizedStatus = status == null ? "" : status.trim().toUpperCase();
+            PageRequest pageRequest = PageRequest.of(safePage, safeSize, Sort.by(Sort.Direction.DESC, "createdAt"));
 
-            // Enrich listings with owner names
-            List<Map<String, Object>> enrichedListings = listings.stream()
-                    .map(listing -> {
-                        Map<String, Object> map = new java.util.HashMap<>();
-                        map.put("listingId", listing.getListingId());
-                        map.put("animalId", listing.getAnimalId());
-                        map.put("ownerId", listing.getOwnerId());
-                        map.put("price", listing.getPrice());
-                        map.put("status", listing.getStatus());
-                        map.put("description", listing.getDescription());
-                        map.put("createdAt", listing.getCreatedAt());
+            Page<ListingDTO> listings = listingService.getAdminListings(
+                    normalizedStatus,
+                    minPrice,
+                    maxPrice,
+                    pageRequest
+            );
+            logger.info("Retrieved listing page {} with {} rows for status '{}', minPrice {}, maxPrice {}",
+                    safePage,
+                    listings.getNumberOfElements(),
+                    normalizedStatus.isBlank() ? "ALL" : normalizedStatus,
+                    minPrice,
+                    maxPrice);
 
-                        // Fetch owner name from users table
-                        if (listing.getOwnerId() != null) {
-                            try {
-                                UserDTO owner = authService.getUserById(listing.getOwnerId());
-                                map.put("ownerName", owner.getFirstName() + " " + owner.getLastName());
-                                map.put("ownerUsername", owner.getUsername());
-                                logger.debug("✓ Owner for listing {}: {}", listing.getListingId(), map.get("ownerName"));
-                            } catch (Exception e) {
-                                logger.warn("⚠ Could not fetch owner for listing {}: {}", listing.getListingId(), e.getMessage());
-                                map.put("ownerName", "Unknown");
-                                map.put("ownerUsername", "Unknown");
-                            }
-                        } else {
-                            map.put("ownerName", "Unknown");
-                            map.put("ownerUsername", "Unknown");
-                        }
-
-                        return map;
-                    })
-                    .collect(java.util.stream.Collectors.toList());
-
-            logger.info("✓ Enriched {} listings with owner information", enrichedListings.size());
-            logger.info("========== RETURNING {} LISTINGS ==========", enrichedListings.size());
-            return ResponseEntity.ok(enrichedListings);
+            return ResponseEntity.ok(new AdminListingsPageDTO(
+                    listings.getContent(),
+                    listings.getNumber(),
+                    listings.getSize(),
+                    listings.getTotalElements(),
+                    listings.getTotalPages(),
+                    listings.hasNext(),
+                    listings.hasPrevious(),
+                    listingService.countListingsByStatus("ACTIVE"),
+                    listingService.countListingsByStatus("SOLD")
+            ));
         } catch (Exception e) {
-            logger.error("❌ Error fetching listings: {}", e.getMessage(), e);
+            logger.error("Error fetching listings: {}", e.getMessage(), e);
+            Map<String, Object> errorBody = new java.util.HashMap<>();
+            errorBody.put("error", "Failed to fetch listings: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(null);
+                    .body(errorBody);
         }
     }
-
     /**
      * Get top 10 active users for verification
      * GET /api/users/verification/top-10
@@ -214,6 +237,12 @@ public class UserManagementController {
         try {
             logger.info("========== BLOCK/UNBLOCK USER (ADMIN) ==========");
             logger.info("Admin ID: {}, Target User ID: {}", adminUserId, targetUserId);
+
+            if (!isAdmin(adminUserId)) {
+                logger.warn("❌ Forbidden: user {} attempted to block/unblock user {}", adminUserId, targetUserId);
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("error", "Admin access required"));
+            }
 
             boolean isBlocked = (Boolean) request.getOrDefault("isBlocked", false);
             String blockedReason = (String) request.getOrDefault("blockedReason", "");
