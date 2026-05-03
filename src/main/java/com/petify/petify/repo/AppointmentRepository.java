@@ -24,6 +24,12 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
         Collection<String> excludedStatuses
     );
 
+    java.util.List<Appointment> findByClinicIdAndStatusAndDateTimeLessThanEqual(
+        Long clinicId,
+        String status,
+        LocalDateTime dateTime
+    );
+
     boolean existsByClinicIdAndDateTimeAndStatusNotIn(
         Long clinicId,
         LocalDateTime dateTime,

@@ -40,7 +40,7 @@ public class AppointmentService {
     private static final LocalTime CLINIC_DAY_START = LocalTime.of(9, 0);
     private static final LocalTime CLINIC_DAY_END = LocalTime.of(17, 0);
     private static final int SLOT_MINUTES = 30;
-    private static final List<String> NON_BLOCKING_STATUSES = List.of("CANCELLED", "NO_SHOW");
+    private static final List<String> NON_BLOCKING_STATUSES = List.of("CANCELLED", "CANCELED", "NO_SHOW");
     private static final DateTimeFormatter SLOT_LABEL_FORMATTER = DateTimeFormatter.ofPattern("HH:mm");
 
     private final AppointmentRepository appointmentRepository;
@@ -141,7 +141,7 @@ public class AppointmentService {
             throw new RuntimeException("Only future appointments can be cancelled");
         }
 
-        if ("CANCELLED".equals(appointment.getStatus())) {
+        if ("CANCELLED".equals(appointment.getStatus()) || "CANCELED".equals(appointment.getStatus())) {
             throw new RuntimeException("Appointment is already cancelled");
         }
 
@@ -368,15 +368,10 @@ public class AppointmentService {
     }
 
     private void markPastConfirmedAppointmentsDoneForClinic(Long clinicId) {
-        LocalDate today = LocalDate.now();
-        LocalDateTime start = LocalDate.of(1970, 1, 1).atStartOfDay();
-        LocalDateTime end = today.plusDays(1).atStartOfDay();
         LocalDateTime now = LocalDateTime.now();
         List<Appointment> updatedAppointments = appointmentRepository
-            .findByClinicIdAndDateTimeBetweenOrderByDateTimeAsc(clinicId, start, end)
+            .findByClinicIdAndStatusAndDateTimeLessThanEqual(clinicId, "CONFIRMED", now)
             .stream()
-            .filter(appointment -> "CONFIRMED".equals(appointment.getStatus()))
-            .filter(appointment -> !appointment.getDateTime().isAfter(now))
             .peek(appointment -> appointment.setStatus("DONE"))
             .toList();
 
