@@ -55,6 +55,7 @@ SELECT
     a.name AS animal_name,
     hr.appointment_id,
     ap.clinic_id,
+    vc.name AS clinic_name,
     ap.date_time,
     ap.status AS appointment_status,
     hr.type,
@@ -62,4 +63,5 @@ SELECT
     hr.date
 FROM health_records hr
          JOIN animals a       ON a.animal_id = hr.animal_id
-         JOIN appointments ap ON ap.appointment_id = hr.appointment_id;
+         JOIN appointments ap ON ap.appointment_id = hr.appointment_id
+         LEFT JOIN vet_clinics vc ON vc.clinic_id = ap.clinic_id;

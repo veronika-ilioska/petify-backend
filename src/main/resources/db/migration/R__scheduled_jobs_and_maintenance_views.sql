@@ -20,7 +20,6 @@ as $$
           AND created_at < now() - interval '30 days';
     end;
     $$;
--- check again for errors
 
 CREATE OR REPLACE VIEW v_overdue_confirmed_appointments AS
 SELECT *
@@ -29,7 +28,6 @@ WHERE status = 'CONFIRMED'
   AND date_time < now() - interval '45 minutes';
 
 
--- View: draft listings that should be archived
 CREATE OR REPLACE VIEW v_stale_draft_listings AS
 SELECT *
 FROM listings

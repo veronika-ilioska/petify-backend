@@ -21,6 +21,22 @@ public class HealthRecordDTO {
     private LocalDate date;
     private LocalDateTime appointmentDateTime;
 
+    public HealthRecordDTO(Long healthRecordId, Long animalId, String animalName,
+                           Long appointmentId, Long clinicId, String clinicName,
+                           String type, String description, LocalDate date,
+                           LocalDateTime appointmentDateTime) {
+        this.healthRecordId = healthRecordId;
+        this.animalId = animalId;
+        this.animalName = animalName;
+        this.appointmentId = appointmentId;
+        this.clinicId = clinicId;
+        this.clinicName = clinicName;
+        this.type = type;
+        this.description = description;
+        this.date = date;
+        this.appointmentDateTime = appointmentDateTime;
+    }
+
     public HealthRecordDTO(HealthRecord record, String clinicName) {
         this.healthRecordId = record.getHealthRecordId();
         this.animalId = record.getPet() != null ? record.getPet().getAnimalId() : null;

@@ -97,7 +97,7 @@ public class AuthService {
             savedUser.getFirstName(),
             savedUser.getLastName(),
             UserType.CLIENT,
-            false  // New users are not verified by default
+            isUserInTopActive(savedUser.getUserId())
         );
     }
 
@@ -289,7 +289,12 @@ public class AuthService {
     /**
      * Check if a user is in the top active users
      */
-    private boolean isUserInTopActive(Long userId) {
+    @Transactional(readOnly = true)
+    public boolean isUserInTopActive(Long userId) {
+        if (userId == null) {
+            return false;
+        }
+
         try {
             LocalDateTime now = LocalDateTime.now();
             LocalDateTime thirtyDaysAgo = now.minusDays(30);

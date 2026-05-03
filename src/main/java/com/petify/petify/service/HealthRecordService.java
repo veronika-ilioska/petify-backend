@@ -5,6 +5,7 @@ import com.petify.petify.domain.HealthRecord;
 import com.petify.petify.dto.CreateHealthRecordRequest;
 import com.petify.petify.dto.HealthRecordDTO;
 import com.petify.petify.repo.AppointmentRepository;
+import com.petify.petify.repo.HealthRecordContextView;
 import com.petify.petify.repo.HealthRecordRepository;
 import com.petify.petify.repo.PetRepository;
 import com.petify.petify.repo.VetClinicRepository;
@@ -76,10 +77,25 @@ public class HealthRecordService {
         petRepository.findById(petId)
             .orElseThrow(() -> new RuntimeException("Pet not found"));
 
-        return healthRecordRepository.findByPetAnimalIdOrderByDateDesc(petId)
+        return healthRecordRepository.findContextByAnimalId(petId)
             .stream()
-            .map(this::mapToDTO)
+            .map(this::mapContextToDTO)
             .toList();
+    }
+
+    private HealthRecordDTO mapContextToDTO(HealthRecordContextView record) {
+        return new HealthRecordDTO(
+            record.getHealthRecordId(),
+            record.getAnimalId(),
+            record.getAnimalName(),
+            record.getAppointmentId(),
+            record.getClinicId(),
+            record.getClinicName(),
+            record.getType(),
+            record.getDescription(),
+            record.getDate(),
+            record.getAppointmentDateTime()
+        );
     }
 
     private HealthRecordDTO mapToDTO(HealthRecord record) {

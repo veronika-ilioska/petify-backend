@@ -214,11 +214,8 @@ public class UserManagementController {
     @GetMapping("/{userId}/verified")
     public ResponseEntity<?> isUserVerified(@PathVariable Long userId) {
         try {
-            LocalDateTime now = LocalDateTime.now();
-            LocalDateTime thirtyDaysAgo = now.minusDays(30);
-            List<UserActivityRankingProjection> topUsers = analyticsRepository.getTopActiveUsers(thirtyDaysAgo, now);
-            boolean isVerified = topUsers.stream().anyMatch(u -> u.getUserId().equals(userId));
-            return ResponseEntity.ok(Map.of("userId", userId, "verified", isVerified));
+            boolean verified = authService.isUserInTopActive(userId);
+            return ResponseEntity.ok(Map.of("userId", userId, "verified", verified));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("error", "Failed to check verification status: " + e.getMessage()));

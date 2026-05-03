@@ -13,7 +13,6 @@ SELECT CASE
            END;
 $$;
 
--- listings trigger function
 CREATE OR REPLACE FUNCTION petify_trg_listings_enforce()
     RETURNS trigger
     LANGUAGE plpgsql
@@ -73,6 +72,7 @@ SELECT
     l.listing_id,
     l.status,
     l.price,
+    l.description,
     l.created_at,
     l.owner_id AS listing_owner_id,
     a.animal_id,
@@ -80,7 +80,12 @@ SELECT
     a.species,
     a.breed,
     a.located_name,
+    a.photo_url,
     a.owner_id AS animal_owner_id,
+    u.username AS owner_username,
+    u.email AS owner_email,
+    TRIM(CONCAT(u.name, ' ', u.surname)) AS owner_name,
     (l.owner_id = a.owner_id) AS owner_match
 FROM listings l
-         JOIN animals a ON a.animal_id = l.animal_id;
+         JOIN animals a ON a.animal_id = l.animal_id
+         JOIN users u ON u.user_id = l.owner_id;
