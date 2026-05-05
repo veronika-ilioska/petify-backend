@@ -1,7 +1,12 @@
 package com.petify.petify.dto;
 
+import lombok.Getter;
+import lombok.Setter;
+
 import java.time.LocalDateTime;
 
+@Setter
+@Getter
 public class AppointmentSlotDTO {
     private LocalDateTime dateTime;
     private String label;
@@ -14,19 +19,4 @@ public class AppointmentSlotDTO {
         this.label = label;
     }
 
-    public LocalDateTime getDateTime() {
-        return dateTime;
-    }
-
-    public void setDateTime(LocalDateTime dateTime) {
-        this.dateTime = dateTime;
-    }
-
-    public String getLabel() {
-        return label;
-    }
-
-    public void setLabel(String label) {
-        this.label = label;
-    }
 }

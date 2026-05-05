@@ -7,25 +7,28 @@ public interface PublicListingRepository extends JpaRepository<Listing, Long> {
 
     @Query(value = """
         SELECT
-            listing_id AS "listingId",
-            status AS "status",
-            price AS "price",
-            description AS "description",
-            created_at AS "createdAt",
-            animal_id AS "animalId",
-            listing_owner_id AS "ownerId",
-            animal_name AS "animalName",
-            species AS "species",
-            breed AS "breed",
-            located_name AS "locatedName",
-            photo_url AS "photoUrl",
-            owner_name AS "ownerName",
-            owner_email AS "ownerEmail",
-            owner_username AS "ownerUsername"
-        FROM v_listings_enriched
-        WHERE status = 'ACTIVE'
-          AND owner_match = true
-        ORDER BY created_at DESC
+            v.listing_id AS "listingId",
+            l.status AS "status",
+            l.price AS "price",
+            l.description AS "description",
+            l.created_at AS "createdAt",
+            v.animal_id AS "animalId",
+            v.listing_owner_id AS "ownerId",
+            v.animal_name AS "animalName",
+            v.species AS "species",
+            v.breed AS "breed",
+            v.located_name AS "locatedName",
+            a.photo_url AS "photoUrl",
+            TRIM(CONCAT(u.name, ' ', u.surname)) AS "ownerName",
+            u.email AS "ownerEmail",
+            u.username AS "ownerUsername"
+        FROM v_listings_enriched v
+        JOIN listings l ON l.listing_id = v.listing_id
+        JOIN animals a ON a.animal_id = v.animal_id
+        JOIN users u ON u.user_id = v.listing_owner_id
+        WHERE l.status = 'ACTIVE'
+          AND v.owner_match = true
+        ORDER BY l.created_at DESC
         """, nativeQuery = true)
     List<PublicListingCardView> findActiveListingCards();
 }

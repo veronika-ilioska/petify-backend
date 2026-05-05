@@ -1,7 +1,12 @@
 package com.petify.petify.dto;
 
+import lombok.Getter;
+import lombok.Setter;
+
 import java.time.LocalDateTime;
 
+@Setter
+@Getter
 public class ClinicUnavailableSlotDTO {
     private Long slotId;
     private Long clinicId;
@@ -20,43 +25,4 @@ public class ClinicUnavailableSlotDTO {
         this.reason = reason;
     }
 
-    public Long getSlotId() {
-        return slotId;
-    }
-
-    public void setSlotId(Long slotId) {
-        this.slotId = slotId;
-    }
-
-    public Long getClinicId() {
-        return clinicId;
-    }
-
-    public void setClinicId(Long clinicId) {
-        this.clinicId = clinicId;
-    }
-
-    public LocalDateTime getDateTime() {
-        return dateTime;
-    }
-
-    public void setDateTime(LocalDateTime dateTime) {
-        this.dateTime = dateTime;
-    }
-
-    public String getLabel() {
-        return label;
-    }
-
-    public void setLabel(String label) {
-        this.label = label;
-    }
-
-    public String getReason() {
-        return reason;
-    }
-
-    public void setReason(String reason) {
-        this.reason = reason;
-    }
 }

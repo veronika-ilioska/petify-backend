@@ -15,6 +15,7 @@ DROP TABLE IF EXISTS owners CASCADE;
 DROP TABLE IF EXISTS clients CASCADE;
 DROP TABLE IF EXISTS admins CASCADE;
 DROP TABLE IF EXISTS users CASCADE;
+drop table if exists clinic_unavailable_slots cascade ;
 
 CREATE TABLE users (
                        user_id        BIGSERIAL,
@@ -73,20 +74,8 @@ CREATE TABLE notifications (
                                    ON DELETE RESTRICT
 );
 
-CREATE TABLE vet_clinics (
-                             clinic_id BIGSERIAL,
-                             name      VARCHAR(120) NOT NULL,
-                             email     VARCHAR(254),
-                             phone     VARCHAR(40),
-                             location  VARCHAR(120),
-                             city      VARCHAR(80)  NOT NULL,
-                             address   VARCHAR(200) NOT NULL,
-                             CONSTRAINT vet_clinics_PK PRIMARY KEY (clinic_id)
-);
-
 CREATE TABLE vet_clinic_applications (
                                          application_id BIGSERIAL,
-                                         clinic_id      BIGINT       NOT NULL UNIQUE,
                                          name           VARCHAR(120) NOT NULL,
                                          email          VARCHAR(254),
                                          phone          VARCHAR(40),
@@ -100,10 +89,6 @@ CREATE TABLE vet_clinic_applications (
 
                                          CONSTRAINT vet_clinic_applications_PK PRIMARY KEY (application_id),
 
-                                         CONSTRAINT vet_clinic_applications_clinic_FK FOREIGN KEY (clinic_id)
-                                             REFERENCES vet_clinics(clinic_id)
-                                             ON DELETE RESTRICT,
-
                                          CONSTRAINT vet_clinic_applications_admin_FK FOREIGN KEY (reviewed_by)
                                              REFERENCES admins(user_id)
                                              ON DELETE SET NULL,
@@ -112,6 +97,27 @@ CREATE TABLE vet_clinic_applications (
                                              status IN ('PENDING','APPROVED','DENIED')
                                              )
 );
+
+CREATE TABLE vet_clinics (
+                             clinic_id BIGSERIAL,
+                             name      VARCHAR(120) NOT NULL,
+                             email     VARCHAR(254),
+                             phone     VARCHAR(40),
+                             location  VARCHAR(120),
+                             city      VARCHAR(80)  NOT NULL,
+                             address   VARCHAR(200) NOT NULL,
+                             user_id   BIGINT       UNIQUE,
+                             application_id BIGINT UNIQUE,
+                             CONSTRAINT vet_clinics_PK PRIMARY KEY (clinic_id),
+                             CONSTRAINT vet_clinics_user_FK FOREIGN KEY (user_id)
+                                 REFERENCES users(user_id)
+                                 ON DELETE RESTRICT,
+                             CONSTRAINT vet_clinics_application_fk FOREIGN KEY (application_id)
+                                 REFERENCES vet_clinic_applications(application_id)
+                                 ON DELETE RESTRICT
+);
+
+
 
 CREATE TABLE animals (
                          animal_id     BIGSERIAL,
@@ -205,7 +211,7 @@ CREATE TABLE health_records (
 CREATE TABLE reviews (
                          review_id    BIGSERIAL,
                          reviewer_id  BIGINT     NOT NULL,
-                         rating       INT        NOT NULL,
+                         rating       rating_1_5     NOT NULL,
                          comment      TEXT,
                          created_at   TIMESTAMP  NOT NULL DEFAULT NOW(),
                          updated_at   TIMESTAMP,
@@ -242,4 +248,18 @@ CREATE TABLE clinic_reviews (
                                     REFERENCES vet_clinics(clinic_id)
                                     ON DELETE RESTRICT
 );
+
+CREATE TABLE IF NOT EXISTS clinic_unavailable_slots (
+                                                        slot_id BIGSERIAL,
+                                                        clinic_id BIGINT NOT NULL,
+                                                        date_time TIMESTAMP NOT NULL,
+                                                        reason TEXT,
+                                                        created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+                                                        CONSTRAINT clinic_unavailable_slots_PK PRIMARY KEY (slot_id),
+                                                        CONSTRAINT clinic_unavailable_slots_clinic_FK FOREIGN KEY (clinic_id)
+                                                            REFERENCES vet_clinics(clinic_id)
+                                                            ON DELETE RESTRICT,
+                                                        CONSTRAINT clinic_unavailable_slots_UQ UNIQUE (clinic_id, date_time)
+);
+
 COMMIT ;

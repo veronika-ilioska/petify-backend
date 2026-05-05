@@ -23,16 +23,11 @@ public class ListingsController {
         this.listingService = listingService;
     }
 
-    /**
-     * Create a new listing (only owners can create)
-     * POST /api/listings
-     */
     @PostMapping
     public ResponseEntity<?> createListing(
             @RequestHeader("X-User-Id") Long userId,
             @RequestBody CreateListingRequest request) {
         try {
-            // Validate request
             if (request.getAnimalId() == null || request.getPrice() == null) {
                 return ResponseEntity.badRequest()
                     .body(Map.of("error", "animalId and price are required"));
@@ -49,10 +44,6 @@ public class ListingsController {
         }
     }
 
-    /**
-     * Get all listings for the current owner
-     * GET /api/listings/my-listings
-     */
     @GetMapping("/my-listings")
     public ResponseEntity<?> getMyListings(@RequestHeader("X-User-Id") Long userId) {
         try {
@@ -64,10 +55,7 @@ public class ListingsController {
         }
     }
 
-    /**
-     * Get a specific listing
-     * GET /api/listings/{listingId}
-     */
+
     @GetMapping("/{listingId}")
     public ResponseEntity<?> getListingById(@PathVariable Long listingId) {
         try {
@@ -88,7 +76,6 @@ public class ListingsController {
             @PathVariable Long listingId,
             @RequestHeader("X-User-Id") Long userId,
             @RequestBody Map<String, String> request) {
-        logger.info("=== START UPDATE LISTING STATUS ENDPOINT ===");
 
         try {
             String status = request.get("status");
@@ -100,21 +87,20 @@ public class ListingsController {
                     .body(Map.of("error", "status is required"));
             }
 
-            logger.info(" Status validation passed");
             ListingDTO listing = listingService.updateListingStatus(listingId, status, userId);
 
-            logger.info("=== END UPDATE LISTING STATUS ENDPOINT - SUCCESS ===");
+            logger.info("===  SUCCESS ===");
             return ResponseEntity.ok(listing);
         } catch (RuntimeException e) {
             logger.error(" RuntimeException occurred: {}", e.getMessage());
             logger.error(" Stack trace:", e);
-            logger.info("=== END UPDATE LISTING STATUS ENDPOINT - ERROR ===");
+            logger.info("===  ERROR ===");
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                 .body(Map.of("error", e.getMessage()));
         } catch (Exception e) {
             logger.error(" Unexpected exception occurred: {}", e.getMessage());
             logger.error(" Stack trace:", e);
-            logger.info("=== END UPDATE LISTING STATUS ENDPOINT - ERROR ===");
+            logger.info("===  ERROR ===");
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(Map.of("error", "Failed to update listing status: " + e.getMessage()));
         }

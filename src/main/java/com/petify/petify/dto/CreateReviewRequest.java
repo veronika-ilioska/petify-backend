@@ -1,10 +1,14 @@
 package com.petify.petify.dto;
 
+import lombok.Getter;
+import lombok.Setter;
+
+@Setter
+@Getter
 public class CreateReviewRequest {
     private Integer rating;
     private String comment;
 
-    // Constructors
     public CreateReviewRequest() {
     }
 
@@ -13,20 +17,4 @@ public class CreateReviewRequest {
         this.comment = comment;
     }
 
-    // Getters and Setters
-    public Integer getRating() {
-        return rating;
-    }
-
-    public void setRating(Integer rating) {
-        this.rating = rating;
-    }
-
-    public String getComment() {
-        return comment;
-    }
-
-    public void setComment(String comment) {
-        this.comment = comment;
-    }
 }

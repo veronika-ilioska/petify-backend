@@ -1,7 +1,12 @@
 package com.petify.petify.dto;
 
+import lombok.Getter;
+import lombok.Setter;
+
 import java.time.LocalDateTime;
 
+@Setter
+@Getter
 public class ClinicAppointmentDTO {
     private Long appointmentId;
     private Long clinicId;
@@ -34,91 +39,4 @@ public class ClinicAppointmentDTO {
         this.notes = notes;
     }
 
-    public Long getAppointmentId() {
-        return appointmentId;
-    }
-
-    public void setAppointmentId(Long appointmentId) {
-        this.appointmentId = appointmentId;
-    }
-
-    public Long getClinicId() {
-        return clinicId;
-    }
-
-    public void setClinicId(Long clinicId) {
-        this.clinicId = clinicId;
-    }
-
-    public Long getAnimalId() {
-        return animalId;
-    }
-
-    public void setAnimalId(Long animalId) {
-        this.animalId = animalId;
-    }
-
-    public String getPetName() {
-        return petName;
-    }
-
-    public void setPetName(String petName) {
-        this.petName = petName;
-    }
-
-    public String getPetSpecies() {
-        return petSpecies;
-    }
-
-    public void setPetSpecies(String petSpecies) {
-        this.petSpecies = petSpecies;
-    }
-
-    public Long getOwnerId() {
-        return ownerId;
-    }
-
-    public void setOwnerId(Long ownerId) {
-        this.ownerId = ownerId;
-    }
-
-    public String getOwnerName() {
-        return ownerName;
-    }
-
-    public void setOwnerName(String ownerName) {
-        this.ownerName = ownerName;
-    }
-
-    public String getStatus() {
-        return status;
-    }
-
-    public void setStatus(String status) {
-        this.status = status;
-    }
-
-    public LocalDateTime getDateTime() {
-        return dateTime;
-    }
-
-    public void setDateTime(LocalDateTime dateTime) {
-        this.dateTime = dateTime;
-    }
-
-    public String getLabel() {
-        return label;
-    }
-
-    public void setLabel(String label) {
-        this.label = label;
-    }
-
-    public String getNotes() {
-        return notes;
-    }
-
-    public void setNotes(String notes) {
-        this.notes = notes;
-    }
 }

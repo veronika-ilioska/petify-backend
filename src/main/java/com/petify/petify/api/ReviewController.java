@@ -24,13 +24,7 @@ public class ReviewController {
         this.reviewService = reviewService;
     }
 
-    /**
-     * Create a new review for a user
-     * POST /api/reviews/{targetUserId}
-     * @param targetUserId the user ID being reviewed
-     * @param request the review request
-     * @return the created review
-     */
+
     @PostMapping("/{targetUserId}")
     public ResponseEntity<?> createReview(
             @PathVariable Long targetUserId,
@@ -39,7 +33,6 @@ public class ReviewController {
         try {
             logger.info("Creating review from user {} for user {}", userId, targetUserId);
 
-            // Validate request
             if (request.getRating() == null || request.getRating() < 1 || request.getRating() > 5) {
                 return ResponseEntity.badRequest()
                         .body(Map.of("error", "Rating must be between 1 and 5"));
@@ -177,22 +170,21 @@ public class ReviewController {
     public ResponseEntity<?> deleteReview(
             @PathVariable Long reviewId,
             @RequestHeader("X-User-Id") Long userId) {
-        logger.info("=== START DELETE REVIEW ENDPOINT ===");
 
         try {
             reviewService.deleteReview(reviewId, userId);
-            logger.info("=== END DELETE REVIEW ENDPOINT - SUCCESS ===");
+            logger.info("===  SUCCESS ===");
             return ResponseEntity.noContent().build();
         } catch (RuntimeException e) {
             logger.error(" RuntimeException occurred: {}", e.getMessage());
             logger.error(" Stack trace:", e);
-            logger.info("=== END DELETE REVIEW ENDPOINT - ERROR ===");
+            logger.info("===  ERROR ===");
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(Map.of("error", e.getMessage()));
         } catch (Exception e) {
             logger.error(" Unexpected exception occurred: {}", e.getMessage());
             logger.error(" Stack trace:", e);
-            logger.info("=== END DELETE REVIEW ENDPOINT - ERROR ===");
+            logger.info("===  ERROR ===");
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("error", "Failed to delete review: " + e.getMessage()));
         }

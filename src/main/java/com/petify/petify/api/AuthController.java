@@ -22,10 +22,6 @@ public class AuthController {
         this.authService = authService;
     }
 
-    /**
-     * Sign up a new user
-     * POST /api/auth/signup
-     */
     @PostMapping("/signup")
     public ResponseEntity<AuthResponse> signUp(@RequestBody SignUpRequest request) {
         try {
@@ -37,10 +33,6 @@ public class AuthController {
         }
     }
 
-    /**
-     * Login user
-     * POST /api/auth/login
-     */
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest request) {
         try {
@@ -54,10 +46,7 @@ public class AuthController {
         }
     }
 
-    /**
-     * Get all users
-     * GET /api/auth/users
-     */
+
     @GetMapping("/users")
     public ResponseEntity<List<UserDTO>> getAllUsers() {
         try {

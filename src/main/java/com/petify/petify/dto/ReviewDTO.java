@@ -1,8 +1,13 @@
 package com.petify.petify.dto;
 
 import com.petify.petify.domain.Review;
+import lombok.Getter;
+import lombok.Setter;
+
 import java.time.LocalDateTime;
 
+@Setter
+@Getter
 public class ReviewDTO {
     private Long reviewId;
     private Long reviewerId;
@@ -13,7 +18,6 @@ public class ReviewDTO {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
-    // Constructors
     public ReviewDTO() {
     }
 
@@ -28,68 +32,4 @@ public class ReviewDTO {
         this.updatedAt = review.getUpdatedAt();
     }
 
-    // Getters and Setters
-    public Long getReviewId() {
-        return reviewId;
-    }
-
-    public void setReviewId(Long reviewId) {
-        this.reviewId = reviewId;
-    }
-
-    public Long getReviewerId() {
-        return reviewerId;
-    }
-
-    public void setReviewerId(Long reviewerId) {
-        this.reviewerId = reviewerId;
-    }
-
-    public String getReviewerName() {
-        return reviewerName;
-    }
-
-    public void setReviewerName(String reviewerName) {
-        this.reviewerName = reviewerName;
-    }
-
-    public String getReviewerUsername() {
-        return reviewerUsername;
-    }
-
-    public void setReviewerUsername(String reviewerUsername) {
-        this.reviewerUsername = reviewerUsername;
-    }
-
-    public Integer getRating() {
-        return rating;
-    }
-
-    public void setRating(Integer rating) {
-        this.rating = rating;
-    }
-
-    public String getComment() {
-        return comment;
-    }
-
-    public void setComment(String comment) {
-        this.comment = comment;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
-
-    public LocalDateTime getUpdatedAt() {
-        return updatedAt;
-    }
-
-    public void setUpdatedAt(LocalDateTime updatedAt) {
-        this.updatedAt = updatedAt;
-    }
 }

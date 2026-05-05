@@ -1,5 +1,10 @@
 package com.petify.petify.dto;
 
+import lombok.Getter;
+import lombok.Setter;
+
+@Setter
+@Getter
 public class CreateUnavailableSlotRequest {
     private String dateTime;
     private String reason;
@@ -7,19 +12,4 @@ public class CreateUnavailableSlotRequest {
     public CreateUnavailableSlotRequest() {
     }
 
-    public String getDateTime() {
-        return dateTime;
-    }
-
-    public void setDateTime(String dateTime) {
-        this.dateTime = dateTime;
-    }
-
-    public String getReason() {
-        return reason;
-    }
-
-    public void setReason(String reason) {
-        this.reason = reason;
-    }
 }

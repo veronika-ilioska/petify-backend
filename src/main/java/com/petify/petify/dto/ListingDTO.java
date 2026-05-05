@@ -1,8 +1,13 @@
 package com.petify.petify.dto;
 
+import lombok.Getter;
+import lombok.Setter;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
+@Setter
+@Getter
 public class ListingDTO {
     private Long listingId;
     private Long ownerId;
@@ -12,7 +17,6 @@ public class ListingDTO {
     private String status;
     private LocalDateTime createdAt;
 
-    // Constructors
     public ListingDTO() {}
 
     public ListingDTO(Long listingId, Long ownerId, Long animalId, String description, BigDecimal price, String status, LocalDateTime createdAt) {
@@ -25,60 +29,4 @@ public class ListingDTO {
         this.createdAt = createdAt;
     }
 
-    // Getters and Setters
-    public Long getListingId() {
-        return listingId;
-    }
-
-    public void setListingId(Long listingId) {
-        this.listingId = listingId;
-    }
-
-    public Long getOwnerId() {
-        return ownerId;
-    }
-
-    public void setOwnerId(Long ownerId) {
-        this.ownerId = ownerId;
-    }
-
-    public Long getAnimalId() {
-        return animalId;
-    }
-
-    public void setAnimalId(Long animalId) {
-        this.animalId = animalId;
-    }
-
-    public String getDescription() {
-        return description;
-    }
-
-    public void setDescription(String description) {
-        this.description = description;
-    }
-
-    public BigDecimal getPrice() {
-        return price;
-    }
-
-    public void setPrice(BigDecimal price) {
-        this.price = price;
-    }
-
-    public String getStatus() {
-        return status;
-    }
-
-    public void setStatus(String status) {
-        this.status = status;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
 }

@@ -1,7 +1,10 @@
 package com.petify.petify.dto;
 
+import lombok.Getter;
+
 import java.util.List;
 
+@Getter
 public class AdminListingsPageDTO {
     private List<ListingDTO> items;
     private int page;
@@ -33,39 +36,4 @@ public class AdminListingsPageDTO {
         this.soldListings = soldListings;
     }
 
-    public List<ListingDTO> getItems() {
-        return items;
-    }
-
-    public int getPage() {
-        return page;
-    }
-
-    public int getSize() {
-        return size;
-    }
-
-    public long getTotalItems() {
-        return totalItems;
-    }
-
-    public int getTotalPages() {
-        return totalPages;
-    }
-
-    public boolean isHasNext() {
-        return hasNext;
-    }
-
-    public boolean isHasPrevious() {
-        return hasPrevious;
-    }
-
-    public long getActiveListings() {
-        return activeListings;
-    }
-
-    public long getSoldListings() {
-        return soldListings;
-    }
 }

@@ -1,5 +1,10 @@
 package com.petify.petify.dto;
 
+import lombok.Getter;
+import lombok.Setter;
+
+@Setter
+@Getter
 public class CreateAppointmentRequest {
     private Long clinicId;
     private Long animalId;
@@ -15,36 +20,5 @@ public class CreateAppointmentRequest {
         this.notes = notes;
     }
 
-    public Long getClinicId() {
-        return clinicId;
-    }
-
-    public void setClinicId(Long clinicId) {
-        this.clinicId = clinicId;
-    }
-
-    public Long getAnimalId() {
-        return animalId;
-    }
-
-    public void setAnimalId(Long animalId) {
-        this.animalId = animalId;
-    }
-
-    public String getDateTime() {
-        return dateTime;
-    }
-
-    public void setDateTime(String dateTime) {
-        this.dateTime = dateTime;
-    }
-
-    public String getNotes() {
-        return notes;
-    }
-
-    public void setNotes(String notes) {
-        this.notes = notes;
-    }
 }
 

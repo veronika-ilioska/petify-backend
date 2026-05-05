@@ -14,19 +14,20 @@ public interface HealthRecordRepository extends JpaRepository<HealthRecord, Long
 
     @Query(value = """
         SELECT
-            healthrecord_id AS "healthRecordId",
-            animal_id AS "animalId",
-            animal_name AS "animalName",
-            appointment_id AS "appointmentId",
-            clinic_id AS "clinicId",
-            clinic_name AS "clinicName",
-            type AS "type",
-            description AS "description",
-            date AS "date",
-            date_time AS "appointmentDateTime"
-        FROM v_health_records_with_context
-        WHERE animal_id = :animalId
-        ORDER BY date DESC, healthrecord_id DESC
+            h.healthrecord_id AS "healthRecordId",
+            h.animal_id AS "animalId",
+            h.animal_name AS "animalName",
+            h.appointment_id AS "appointmentId",
+            h.clinic_id AS "clinicId",
+            vc.name AS "clinicName",
+            h.type AS "type",
+            h.description AS "description",
+            h.date AS "date",
+            h.date_time AS "appointmentDateTime"
+        FROM v_health_records_with_context h
+        LEFT JOIN vet_clinics vc ON vc.clinic_id = h.clinic_id
+        WHERE h.animal_id = :animalId
+        ORDER BY h.date DESC, h.healthrecord_id DESC
         """, nativeQuery = true)
     List<HealthRecordContextView> findContextByAnimalId(@Param("animalId") Long animalId);
 

@@ -1,9 +1,13 @@
 package com.petify.petify.dto;
 
 import com.petify.petify.domain.VetClinicApplication;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.time.LocalDateTime;
 
+@Setter
+@Getter
 public class VetClinicApplicationDTO {
     private Long applicationId;
     private String name;
@@ -34,26 +38,4 @@ public class VetClinicApplicationDTO {
         this.denialReason = application.getDenialReason();
     }
 
-    public Long getApplicationId() { return applicationId; }
-    public void setApplicationId(Long applicationId) { this.applicationId = applicationId; }
-    public String getName() { return name; }
-    public void setName(String name) { this.name = name; }
-    public String getEmail() { return email; }
-    public void setEmail(String email) { this.email = email; }
-    public String getPhone() { return phone; }
-    public void setPhone(String phone) { this.phone = phone; }
-    public String getCity() { return city; }
-    public void setCity(String city) { this.city = city; }
-    public String getAddress() { return address; }
-    public void setAddress(String address) { this.address = address; }
-    public LocalDateTime getSubmittedAt() { return submittedAt; }
-    public void setSubmittedAt(LocalDateTime submittedAt) { this.submittedAt = submittedAt; }
-    public String getStatus() { return status; }
-    public void setStatus(String status) { this.status = status; }
-    public LocalDateTime getReviewedAt() { return reviewedAt; }
-    public void setReviewedAt(LocalDateTime reviewedAt) { this.reviewedAt = reviewedAt; }
-    public Long getReviewedBy() { return reviewedBy; }
-    public void setReviewedBy(Long reviewedBy) { this.reviewedBy = reviewedBy; }
-    public String getDenialReason() { return denialReason; }
-    public void setDenialReason(String denialReason) { this.denialReason = denialReason; }
 }
