@@ -432,7 +432,10 @@ jdbc:postgresql://host:5432/database
 
 ## Academic Context
 
-Petify was developed as a full-stack project for the **Databases** course.
+Petify was developed as a full-stack project for the **Databases** course at the Faculty of Computer Science and Engineering (FINKI).
+
+Project page: [Petify – Databases course project](https://develop.finki.ukim.mk/projects/petify)
+
 
 ## Author
 
