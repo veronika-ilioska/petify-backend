@@ -1,149 +1,445 @@
 # Petify Backend
 
-Petify Backend is a Spring Boot–based REST API that powers the Petify platform — a pet care and service marketplace connecting pet owners, caregivers, and administrators.  
-The backend is responsible for authentication, business logic, data persistence, and API exposure for the frontend and external services.
+The backend REST API for **Petify**, a full-stack platform for managing pet listings, owners, clients, reviews, favorites, and veterinary clinic workflows.
 
----
+This repository contains the server-side application built with **Java**, **Spring Boot**, and **PostgreSQL**. It handles authentication, authorization, business logic, validation, data persistence, and communication with the Petify frontend.
 
-## Overview
+## Features
 
-The backend provides:
+### Authentication and authorization
 
-- Secure user authentication and authorization
-- Role-based access control (Admin, Client, Owner)
-- Management of pets, listings, reviews, and bookings
-- Vet clinic onboarding and approval workflows
-- Centralized business rules and validations
-- RESTful APIs for frontend consumption
+- User registration and login
+- Stateless authentication
+- Secure password hashing with BCrypt
+- Role-based endpoint protection
+- Support for administrator and client accounts
+- Account status management
 
-The system is designed with scalability, clarity, and real-world domain modeling in mind.
+### Users and pet owners
 
----
+- Manage client profiles
+- Add and manage pets
+- Associate pets with their owners
+- Store pet information, metadata, and documents
+- Maintain owner and client relationships
 
-## Tech Stack
+### Pet listings
+
+- Create and manage pet-related listings
+- Store pricing and location information
+- Control listing visibility
+- Track listing availability
+- Browse listing details through REST endpoints
+- Administrator moderation of listings
+
+### Favorites
+
+- Add listings to a user's favorites
+- Remove listings from favorites
+- Retrieve a user's saved listings
+
+### Reviews
+
+- Submit reviews as authenticated users
+- Retrieve reviews for owners or listings
+- Enforce review authorship and relationships
+- Store ratings and comments
+
+### Veterinary clinics
+
+- Submit veterinary clinic applications
+- Review clinic applications as an administrator
+- Approve or reject applications
+- Separate pending applications from active clinic records
+
+### Administrator functionality
+
+- Manage registered clients
+- Block or activate accounts
+- Moderate listings
+- Review veterinary clinic applications
+- Access protected administration endpoints
+
+## Technologies
 
 - **Java 17**
-- **Spring Boot**
+- **Spring Boot 4**
+- **Spring Web MVC**
 - **Spring Security**
-- **Spring Data JPA (Hibernate)**
+- **Spring Data JPA**
+- **Hibernate**
 - **PostgreSQL**
+- **Flyway**
 - **Maven**
+- **HikariCP**
+- **Lombok**
+- **Docker Compose**
+- **BCrypt**
 - **JWT-based authentication**
-- **Docker-ready architecture**
 
----
+## Related Repository
+
+This repository contains the backend application.
+
+The frontend is available here:
+
+[Petify Frontend](https://github.com/veronika-ilioska/petify-frontend)
 
 ## Architecture
 
 The project follows a layered architecture:
 
-- **API Layer**  
-  REST controllers exposing endpoints and handling HTTP requests/responses
+```text
+Controller
+    ↓
+Service
+    ↓
+Repository
+    ↓
+PostgreSQL
+```
 
-- **Service Layer**  
-  Business logic, validations, and transactional operations
+### Controller layer
 
-- **Persistence Layer**  
-  JPA entities and repositories mapped to PostgreSQL
+Receives HTTP requests, validates request data, and returns JSON responses.
 
-- **Security Layer**  
-  Authentication, authorization, JWT handling, and request filtering
+### Service layer
 
-- **Domain Model**  
-  Clear separation of Users, Roles, Pets, Listings, Reviews, and Clinics
+Contains the application business logic, authorization checks, validation rules, and transactional operations.
 
----
+### Repository layer
 
-## Core Features
+Uses Spring Data JPA to access and modify data stored in PostgreSQL.
 
-### Authentication & Authorization
-- Username/password authentication
-- JWT token issuance and validation
-- Role-based endpoint protection
+### Domain layer
 
-### Users & Roles
-- Unified `User` model with role specialization
-- Support for Admins and Clients
-- Account status handling (active, blocked)
+Contains the entities and relationships used to represent users, pets, listings, reviews, favorites, and veterinary clinics.
 
-### Pets & Owners
-- Clients can add pets and become owners
-- Pet profiles with documents and metadata
-- Owner–pet relationships enforced at database level
+### Security layer
 
-### Listings
-- Pet-related service listings
-- Pricing, location, and availability tracking
-- Public and private listing visibility
+Handles authentication, password hashing, authorization, security filters, CORS, and protected routes.
 
-### Reviews
-- Authenticated user reviews
-- One-to-many user-to-review relationship
-- Review authorship enforcement
+## Project Structure
 
-### Vet Clinics
-- Vet clinic application workflow
-- Admin approval or rejection process
-- Separation between application and active clinic records
+```text
+petify-backend/
+├── .mvn/
+├── sql/
+│   ├── ddl.sql
+│   └── dml.sql
+├── src/
+│   ├── main/
+│   │   ├── java/
+│   │   │   └── com/petify/petify/
+│   │   └── resources/
+│   └── test/
+├── docker-compose.yml
+├── mvnw
+├── mvnw.cmd
+├── pom.xml
+└── README.md
+```
 
----
+The exact package structure under `src/main/java` may contain packages such as:
 
-## Data Persistence
+```text
+config/
+controller/
+dto/
+model/
+repository/
+security/
+service/
+```
 
-- PostgreSQL as the primary datastore
-- Strong referential integrity using foreign keys
-- Lazy and eager loading configured per use case
-- Transactional service methods for consistency
+## Prerequisites
 
----
+Before running the application, install:
 
-## Security
+- **Java 17**
+- **Docker Desktop**, or a local PostgreSQL installation
+- **Git**
 
-- Stateless authentication using JWT
-- Password hashing with BCrypt
-- Protected endpoints based on roles
-- CORS configuration for frontend integration
+Maven does not need to be installed separately because the repository includes the Maven Wrapper.
 
----
+## Getting Started
 
-## Configuration
+### 1. Clone the repository
 
-The application is configured via environment variables and Spring profiles.  
-Sensitive data such as database credentials and secrets are externalized and not committed to version control.
+```bash
+git clone https://github.com/veronika-ilioska/petify-backend.git
+cd petify-backend
+```
 
----
+### 2. Configure environment variables
 
-## Running the Application
+Create a `.env` file in the project root for the local PostgreSQL container:
 
-The backend is designed to run:
+```env
+DB_LOCAL_USERNAME=postgres
+DB_LOCAL_PASSWORD=your_password
+DB_LOCAL_NAME=petify
+```
 
-- Locally (for development and testing)
-- In Docker containers
-- As part of a multi-service deployment with frontend and database
+Do not commit real passwords or secrets to GitHub.
 
-Spring profiles allow flexible environment switching.
+### 3. Start PostgreSQL with Docker Compose
 
----
+```bash
+docker compose up -d
+```
 
-## API Design
+The included Docker Compose configuration starts PostgreSQL on:
 
-- RESTful endpoints
-- JSON request/response payloads
-- Clear separation of public and protected routes
-- Predictable HTTP status codes
+```text
+localhost:5433
+```
 
----
+The database data is stored in a Docker volume so that it remains available after the container stops.
 
-## Project Goals
+To check whether the container is running:
 
-- Real-world domain modeling for academic and production use
-- Clean, maintainable backend structure
-- Ready for extension with AI-driven services
-- Suitable for cloud deployment and CI/CD pipelines
+```bash
+docker compose ps
+```
 
----
+To stop it:
+
+```bash
+docker compose down
+```
+
+To stop it and remove the stored database volume:
+
+```bash
+docker compose down -v
+```
+
+## Spring Configuration
+
+Configure the Spring datasource in `src/main/resources/application.properties` or through environment variables.
+
+Example local configuration:
+
+```properties
+spring.datasource.url=jdbc:postgresql://localhost:5433/petify
+spring.datasource.username=${DB_LOCAL_USERNAME}
+spring.datasource.password=${DB_LOCAL_PASSWORD}
+
+spring.jpa.hibernate.ddl-auto=validate
+spring.jpa.show-sql=false
+
+spring.flyway.enabled=true
+spring.flyway.locations=classpath:db/migration
+
+server.port=8080
+```
+
+For deployed environments, prefer environment variables:
+
+```properties
+spring.datasource.url=${DATABASE_URL}
+spring.datasource.username=${DATABASE_USERNAME}
+spring.datasource.password=${DATABASE_PASSWORD}
+```
+
+The exact variable names should match the configuration used by the application.
+
+## Security Configuration
+
+The backend uses stateless authentication and protected routes.
+
+Sensitive values such as token-signing secrets should be stored outside the source code:
+
+```env
+JWT_SECRET=replace_with_a_long_random_secret
+JWT_EXPIRATION=86400000
+```
+
+A production JWT secret should be long, random, and never committed to the repository.
+
+## Run the Application
+
+### Windows
+
+```bash
+mvnw.cmd spring-boot:run
+```
+
+### macOS or Linux
+
+```bash
+./mvnw spring-boot:run
+```
+
+The API will normally be available at:
+
+```text
+http://localhost:8080
+```
+
+## Build the Project
+
+### Windows
+
+```bash
+mvnw.cmd clean package
+```
+
+### macOS or Linux
+
+```bash
+./mvnw clean package
+```
+
+The generated JAR file will be stored in:
+
+```text
+target/
+```
+
+Run the packaged application with:
+
+```bash
+java -jar target/petify-0.0.1-SNAPSHOT.jar
+```
+
+## Run Tests
+
+### Windows
+
+```bash
+mvnw.cmd test
+```
+
+### macOS or Linux
+
+```bash
+./mvnw test
+```
+
+## Database
+
+The project uses PostgreSQL as its primary database.
+
+The `sql` directory contains:
+
+| File | Purpose |
+|---|---|
+| `ddl.sql` | Database schema definitions |
+| `dml.sql` | Initial or sample data |
+
+The application also includes Flyway for version-controlled database migrations.
+
+A recommended migration structure is:
+
+```text
+src/main/resources/db/migration/
+├── V1__initial_schema.sql
+├── V2__seed_reference_data.sql
+└── V3__add_new_feature.sql
+```
+
+Once a Flyway migration has been applied, avoid editing it. Create a new migration for future schema changes.
+
+## API Requests
+
+The backend exposes RESTful endpoints that exchange JSON data.
+
+A typical protected request uses an authorization header:
+
+```http
+Authorization: Bearer <token>
+```
+
+Example login request:
+
+```http
+POST /api/auth/login
+Content-Type: application/json
+```
+
+```json
+{
+  "email": "user@example.com",
+  "password": "password"
+}
+```
+
+The exact routes and payloads depend on the controllers and DTOs defined in the project.
+
+## Frontend Integration
+
+For local development, the frontend usually runs at:
+
+```text
+http://localhost:5173
+```
+
+The backend CORS configuration must allow requests from this origin.
+
+For deployment, add the deployed frontend address to the allowed origins instead of using a wildcard.
+
+The frontend should use the backend base URL through an environment variable:
+
+```env
+VITE_API_BASE_URL=http://localhost:8080
+```
+
+## Docker Compose Database Configuration
+
+The included `docker-compose.yml` uses:
+
+- PostgreSQL 15 Alpine
+- Host port `5433`
+- Container port `5432`
+- Environment-based database credentials
+- A persistent Docker volume
+- A PostgreSQL health check
+
+This configuration starts only the local database. The Spring Boot application is run separately through Maven or the packaged JAR.
+
+## Deployment
+
+The backend can be deployed to platforms such as Render, Railway, Fly.io, or another Java-compatible hosting service.
+
+Typical deployment settings:
+
+```text
+Build command:
+./mvnw clean package -DskipTests
+
+Start command:
+java -jar target/petify-0.0.1-SNAPSHOT.jar
+```
+
+Required production environment variables may include:
+
+```env
+DATABASE_URL=
+DATABASE_USERNAME=
+DATABASE_PASSWORD=
+JWT_SECRET=
+FRONTEND_URL=
+```
+
+On some platforms, PostgreSQL connection URLs need to be converted to JDBC format:
+
+```text
+jdbc:postgresql://host:5432/database
+```
+
+
+## Academic Context
+
+Petify was developed as a full-stack project for the **Databases** course.
+
+## Author
+
+**Veronika Ilioska**
+
+GitHub: [veronika-ilioska](https://github.com/veronika-ilioska)
 
 ## License
 
-This project is developed for educational and research purposes.  
-All rights reserved.
+This project was created for educational purposes.
